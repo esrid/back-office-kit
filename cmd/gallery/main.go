@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/esrid/back-office-kit/ui"
@@ -16,6 +17,7 @@ import (
 type Section struct {
 	N          int
 	Signature  string
+	Search     string
 	Group      string
 	ID         string
 	Title      string
@@ -278,8 +280,16 @@ func sections() []Section {
 	for i := range secs {
 		secs[i].N = i + 1
 		secs[i].Signature = signatureFor(sigs, secs[i].Title)
+		secs[i].Search = searchText(secs[i])
 	}
 	return secs
+}
+
+// searchText is the haystack the client filter matches against. Built here so
+// the browser never has to scrape the DOM to know what a section is about.
+func searchText(s Section) string {
+	parts := append([]string{s.Title, s.Purpose, s.Group, s.Signature}, s.Uses...)
+	return strings.ToLower(strings.Join(parts, " "))
 }
 
 func main() {

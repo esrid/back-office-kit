@@ -12,12 +12,24 @@ templ Gallery(secs []Section) {
 				<span>Back-office kit</span>
 			</div>
 			<p class="gal-brand-sub">templ · daisyUI 5 · Unpoly 3</p>
+			<div class="gal-search" hidden id="gal-search">
+				<input
+					type="search"
+					id="gal-q"
+					placeholder="Filtrer…"
+					aria-label="Filtrer les composants"
+					aria-describedby="gal-count"
+					autocomplete="off"
+				/>
+				<kbd>/</kbd>
+			</div>
+			<p class="gal-count" id="gal-count" role="status" aria-live="polite"></p>
 			<nav class="gal-index">
 				for i, s := range secs {
 					if i == 0 || s.Group != secs[i-1].Group {
-						<span class="gal-index-group">{ s.Group }</span>
+						<span class="gal-index-group" data-group={ s.Group }>{ s.Group }</span>
 					}
-					<a href={ templ.SafeURL("#" + s.ID) }>
+					<a href={ templ.SafeURL("#" + s.ID) } data-for={ s.ID }>
 						<span class="gal-index-n">{ pad(s.N) }</span>
 						<span>{ s.Title }</span>
 					</a>
@@ -41,10 +53,12 @@ templ Gallery(secs []Section) {
 			</header>
 			for i, s := range secs {
 				if i == 0 || s.Group != secs[i-1].Group {
-					<h2 class="gal-group">{ s.Group }</h2>
+					<h2 class="gal-group" data-group={ s.Group }>{ s.Group }</h2>
 				}
 				@sectionView(s)
 			}
+			<p class="gal-empty" id="gal-empty" hidden>Aucun composant ne correspond.</p>
+			@searchScript()
 			<footer class="gal-foot">
 				<p>Toute la logique d'URL (tri, pagination) est pure et testée : <code>go test ./ui/</code></p>
 			</footer>
@@ -53,7 +67,7 @@ templ Gallery(secs []Section) {
 }
 
 templ sectionView(s Section) {
-	<section class="gal-sec" id={ s.ID }>
+	<section class="gal-sec" id={ s.ID } data-search={ s.Search }>
 		<div class="gal-sec-head">
 			<span class="gal-sec-n">{ pad(s.N) }</span>
 			<div class="gal-sec-meta">
@@ -257,4 +271,80 @@ templ demoSettingsPage() {
 			}
 		}
 	}
+}
+
+// searchScript filters the page client-side. The input starts [hidden] and is
+// revealed here, so without JavaScript there is no dead control on screen --
+// the rail already lists every component.
+templ searchScript() {
+	<script type="text/javascript">
+		(function () {
+			var box = document.getElementById("gal-search");
+			var input = document.getElementById("gal-q");
+			var count = document.getElementById("gal-count");
+			var empty = document.getElementById("gal-empty");
+			if (!box || !input) return;
+			box.hidden = false;
+
+			var sections = Array.prototype.slice.call(document.querySelectorAll(".gal-sec"));
+			var links = Array.prototype.slice.call(document.querySelectorAll(".gal-index a[data-for]"));
+			var groups = Array.prototype.slice.call(document.querySelectorAll("[data-group]"));
+			var total = sections.length;
+
+			// Fold accents so "systeme" finds "système".
+			function fold(s) {
+				return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+			}
+
+			var haystacks = sections.map(function (el) { return fold(el.dataset.search || ""); });
+			var linkFor = {};
+			links.forEach(function (a) { linkFor[a.dataset.for] = a; });
+
+			function apply(raw) {
+				var terms = fold(raw).split(/\s+/).filter(Boolean);
+				var shown = 0;
+				var liveGroups = {};
+
+				sections.forEach(function (el, i) {
+					var hit = terms.every(function (t) { return haystacks[i].indexOf(t) !== -1; });
+					el.hidden = !hit;
+					var link = linkFor[el.id];
+					if (link) link.hidden = !hit;
+					if (hit) {
+						shown++;
+						liveGroups[el.dataset.group || ""] = true;
+					}
+				});
+
+				// A group heading with nothing under it is noise.
+				groups.forEach(function (h) { h.hidden = !liveGroups[h.dataset.group]; });
+
+				empty.hidden = shown !== 0;
+				count.textContent = terms.length === 0
+					? total + " composants"
+					: shown + " sur " + total;
+			}
+
+			// Each section needs to know its group to hide empty headings.
+			var current = "";
+			Array.prototype.forEach.call(document.querySelectorAll(".gal-main > *"), function (el) {
+				if (el.classList.contains("gal-group")) current = el.dataset.group;
+				else if (el.classList.contains("gal-sec")) el.dataset.group = current;
+			});
+
+			input.addEventListener("input", function () { apply(input.value); });
+			input.addEventListener("keydown", function (e) {
+				if (e.key === "Escape") { input.value = ""; apply(""); input.blur(); }
+			});
+			document.addEventListener("keydown", function (e) {
+				if (e.key === "/" && document.activeElement !== input) {
+					e.preventDefault();
+					input.focus();
+					input.select();
+				}
+			});
+
+			apply("");
+		})();
+	</script>
 }
