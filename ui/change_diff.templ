@@ -1,0 +1,79 @@
+package ui
+
+type ChangeKind string
+
+const (
+	ChangeAdded   ChangeKind = "added"
+	ChangeUpdated ChangeKind = "updated"
+	ChangeRemoved ChangeKind = "removed"
+)
+
+func changeKindLabel(kind ChangeKind) string {
+	switch kind {
+	case ChangeAdded:
+		return "Ajout"
+	case ChangeRemoved:
+		return "Suppression"
+	default:
+		return "Modification"
+	}
+}
+
+func changeKindTone(kind ChangeKind) string {
+	switch kind {
+	case ChangeAdded:
+		return "success"
+	case ChangeRemoved:
+		return "error"
+	default:
+		return "warning"
+	}
+}
+
+type ChangeDiffItem struct {
+	Label  string
+	Before string
+	After  string
+	Kind   ChangeKind
+}
+
+type ChangeDiffProps struct {
+	ID      string
+	Title   string
+	Summary string
+	Items   []ChangeDiffItem
+}
+
+// ChangeDiff renders backend-redacted before/after values. The caller must
+// remove secrets and fields the current user is not allowed to inspect.
+templ ChangeDiff(p ChangeDiffProps) {
+	<section id={ p.ID } class="card card-border bg-base-100" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body p-4 gap-3">
+			<div>
+				<h2 id={ p.ID + "-title" } class="font-semibold">{ p.Title }</h2>
+				if p.Summary != "" {
+					<p class="text-sm opacity-70 mt-1">{ p.Summary }</p>
+				}
+			</div>
+			if len(p.Items) == 0 {
+				<p class="text-sm opacity-70">Aucune modification.</p>
+			} else {
+				<div class="overflow-x-auto" tabindex="0" role="region" aria-label={ "Comparaison : " + p.Title }>
+					<table class="table table-sm">
+						<thead><tr><th>Champ</th><th>Avant</th><th>Après</th><th>Nature</th></tr></thead>
+						<tbody>
+							for _, item := range p.Items {
+								<tr>
+									<th scope="row" class="font-medium">{ item.Label }</th>
+									<td class="min-w-44"><del class="block whitespace-pre-wrap break-words text-xs opacity-70">{ item.Before }</del></td>
+									<td class="min-w-44"><ins class="block whitespace-pre-wrap break-words text-xs no-underline font-medium">{ item.After }</ins></td>
+									<td><span class={ "badge badge-sm", toneOf(changeKindTone(item.Kind)).Badge }>{ changeKindLabel(item.Kind) }</span></td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	</section>
+}

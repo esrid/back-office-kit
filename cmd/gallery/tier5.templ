@@ -1,0 +1,70 @@
+package main
+
+import "example.com/components/ui"
+
+templ demoApprovalToolbar() {
+	@ui.SavedViewBar([]ui.SavedView{
+		{Label: "En attente", Href: "/approvals?status=pending"},
+		{Label: "Traitées", Href: "/approvals?status=resolved"},
+		{Label: "Toutes", Href: "/approvals"},
+	}, "/approvals?status=pending", "")
+}
+
+templ demoApprovalInbox() {
+	@ui.ApprovalInbox(ui.ApprovalInboxProps{
+		ID: "demo-approval-inbox", Title: "Approbations de l’équipe",
+		Busy: true, PollSource: "/approvals?status=pending", Target: "#demo-approval-inbox",
+		Items: demoApprovalRequests(), Toolbar: demoApprovalToolbar(),
+	})
+}
+
+templ demoChangeDiff() {
+	@ui.ChangeDiff(ui.ChangeDiffProps{
+		ID: "demo-change-diff", Title: "Modifications proposées",
+		Summary: "4 champs seront modifiés sur le compte Acme Caraïbes.",
+		Items: demoChangeItems(),
+	})
+}
+
+templ demoConflictDiff() {
+	@ui.ChangeDiff(ui.ChangeDiffProps{
+		ID: "demo-conflict-diff", Title: "Écart avec la version actuelle",
+		Summary: "Nora Martin a modifié ce compte pendant votre édition.",
+		Items: []ui.ChangeDiffItem{
+			{Label: "Responsable", Before: "Amélie Rousseau", After: "Nora Martin", Kind: ui.ChangeUpdated},
+			{Label: "Limite mensuelle", Before: "15 000 €", After: "20 000 €", Kind: ui.ChangeUpdated},
+		},
+	})
+}
+
+templ demoConflictResolver() {
+	@ui.ConflictResolver(ui.ConflictResolverProps{
+		ID: "demo-conflict", ConflictID: "conflict_9f2",
+		Title: "Ce compte a changé depuis l’ouverture du formulaire",
+		Message: "Comparez les versions avant de choisir une résolution.", Resource: "Compte Acme Caraïbes",
+		SubmittedVersion: "12", CurrentVersion: "14", Action: "/conflicts/9f2/resolve",
+		ReloadHref: "/conflicts/9f2", ReturnHref: "/accounts/acme-caribbean",
+		AllowMerge: true, AllowOverwrite: false,
+	}, demoConflictDiff())
+}
+
+templ demoAccessNotices() {
+	<div class="flex flex-col gap-3">
+		@ui.AccessNotice(ui.AccessNoticeProps{
+			ID: "access-step-up", DecisionID: "decision_17", Decision: ui.AccessStepUp,
+			Title: "Confirmez votre identité", Message: "Une authentification récente est nécessaire pour afficher les coordonnées bancaires.",
+			Reason: "Session authentifiée il y a plus de 30 minutes", Policy: "billing.pii.reveal",
+			ActionHref: "/reauth?return=/billing/42", ActionLabel: "Se réauthentifier", ActionLayer: "new modal",
+		})
+		@ui.AccessNotice(ui.AccessNoticeProps{
+			ID: "access-denied", DecisionID: "decision_18", Decision: ui.AccessDenied,
+			Title: "Export non autorisé", Message: "Votre rôle permet de consulter ces données, mais pas de les exporter.",
+			Reason: "Permission export absente", Policy: "prospects.export",
+			HelpHref: "/policies/prospects-export",
+		})
+		@ui.AccessNotice(ui.AccessNoticeProps{
+			ID: "access-allowed", DecisionID: "decision_19", Decision: ui.AccessAllowed,
+			Message: "L’accès temporaire est actif jusqu’à 19:30.", Policy: "support.impersonate",
+		})
+	</div>
+}

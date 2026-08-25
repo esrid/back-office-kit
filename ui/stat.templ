@@ -1,0 +1,29 @@
+package ui
+
+type Stat struct {
+	Label       string
+	Value       string
+	Description string
+	Change      string
+	Tone        string
+}
+
+// StatRow renders responsive KPI tiles.
+templ StatRow(stats []Stat) {
+	<div class="stats stats-vertical md:stats-horizontal w-full border border-base-300 bg-base-100">
+		for _, s := range stats {
+			<div class="stat min-w-0">
+				<div class="stat-title">{ s.Label }</div>
+				<div class="stat-value text-2xl">{ s.Value }</div>
+				if s.Change != "" || s.Description != "" {
+					<div class="stat-desc flex flex-wrap gap-x-1.5">
+						if s.Change != "" {
+							<span class={ "font-medium", toneOf(s.Tone).Text }>{ s.Change }</span>
+						}
+						<span>{ s.Description }</span>
+					</div>
+				}
+			</div>
+		}
+	</div>
+}

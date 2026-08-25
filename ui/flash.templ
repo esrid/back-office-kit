@@ -1,0 +1,24 @@
+package ui
+
+// Flash is one notification message. Tone is a daisyUI alert color
+// suffix: "info", "success", "warning" or "error".
+type Flash struct {
+	Tone string
+	Text string
+}
+
+// Flashes renders the [up-flashes] region. Solid alert colours, not
+// alert-soft: soft alerts measured 1.7:1 to 2.6:1 in the light theme.
+//
+// Flashes renders the [up-flashes] region. Unpoly updates this element on
+// every render even when it is not targeted, and an empty container does not
+// clear existing messages -- so it is safe to always emit it.
+templ Flashes(msgs []Flash) {
+	<div up-flashes class="empty:hidden px-4 pt-4 sm:px-6 flex flex-col gap-2">
+		for _, m := range msgs {
+			<div role="alert" class={ "alert", toneOf(m.Tone).Alert }>
+				<span>{ m.Text }</span>
+			</div>
+		}
+	</div>
+}

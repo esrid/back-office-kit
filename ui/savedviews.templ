@@ -1,0 +1,20 @@
+package ui
+
+type SavedView struct {
+	Label string
+	Href  string
+}
+
+// SavedViewBar restores named filter/sort presets through ordinary URLs.
+templ SavedViewBar(views []SavedView, current string, saveHref string) {
+	<nav class="flex items-center gap-2 overflow-x-auto" aria-label="Vues enregistrées">
+		<div class="join min-w-max">
+			for _, view := range views {
+				<a href={ templ.SafeURL(view.Href) } up-follow class={ "join-item btn btn-sm", templ.KV("btn-active", view.Href == current) } aria-current={ ariaCurrent(view.Href == current) }>{ view.Label }</a>
+			}
+		</div>
+		if saveHref != "" {
+			<a href={ templ.SafeURL(saveHref) } up-layer="new modal" class="btn btn-sm btn-ghost whitespace-nowrap">+ Enregistrer la vue</a>
+		}
+	</nav>
+}

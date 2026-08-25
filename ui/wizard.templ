@@ -1,0 +1,62 @@
+package ui
+
+import "strconv"
+
+type WizardStep struct {
+	Label string
+	Href  string
+}
+type WizardProps struct {
+	Title     string
+	Steps     []WizardStep
+	Current   int
+	Action    string
+	BackHref  string
+	NextLabel string
+}
+
+func wizardNextLabel(label string) string {
+	if label == "" {
+		return "Continuer"
+	}
+	return label
+}
+
+// wizardPosition turns a zero-based step index into a 1..total position.
+func wizardPosition(current, total int) int {
+	if total < 1 {
+		return 0
+	}
+	return min(max(current+1, 1), total)
+}
+
+// Wizard renders one server-owned step at a time.
+templ Wizard(p WizardProps) {
+	<section class="flex flex-col gap-5">
+		<div><h1 class="text-xl font-semibold">{ p.Title }</h1><p class="text-sm opacity-60">Étape { strconv.Itoa(wizardPosition(p.Current, len(p.Steps))) } sur { strconv.Itoa(len(p.Steps)) }</p></div>
+		<ol class="steps steps-horizontal w-full overflow-x-auto" aria-label="Progression">
+			for i, step := range p.Steps {
+				<li class={ "step", templ.KV("step-primary", i <= p.Current) }>
+					if i < p.Current && step.Href != "" {
+						<a href={ templ.SafeURL(step.Href) } up-follow>{ step.Label }</a>
+					} else {
+						<span aria-current={ ariaCurrent(i == p.Current) }>{ step.Label }</span>
+					}
+				</li>
+			}
+		</ol>
+		<form method="post" action={ templ.SafeURL(p.Action) } up-submit class="card card-border bg-base-100">
+			<div class="card-body">
+				{ children... }
+				<div class="card-actions justify-between mt-3">
+					if p.BackHref != "" {
+						<a href={ templ.SafeURL(p.BackHref) } up-follow class="btn btn-ghost btn-sm">Retour</a>
+					} else {
+						<span></span>
+					}
+					<button type="submit" class="btn btn-primary btn-sm">{ wizardNextLabel(p.NextLabel) }</button>
+				</div>
+			</div>
+		</form>
+	</section>
+}

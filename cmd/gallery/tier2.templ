@@ -1,0 +1,90 @@
+package main
+
+import "example.com/components/ui"
+import "net/url"
+
+templ demoFilterBarComplete() {
+	@ui.FilterBar([]ui.Filter{
+		{Name: "q", Label: "Recherche", Placeholder: "Nom ou e-mail"},
+		{Name: "status", Label: "Statut", Options: []ui.Option{{Value: "active", Label: "Actif"}, {Value: "pending", Label: "En attente"}}},
+		{Kind: ui.FilterDateRange, Name: "from", EndName: "to", Label: "Du", EndLabel: "au"},
+	}, url.Values{"q": {"acme"}, "status": {"active"}, "from": {"2026-08-01"}, "to": {"2026-08-25"}, "sort": {"email"}}, "#results")
+}
+
+templ tier2SecondaryActions() {
+	<button class="btn btn-ghost btn-sm">Exporter</button>
+}
+
+templ tier2PrimaryAction() {
+	<button class="btn btn-primary btn-sm">Modifier</button>
+}
+
+templ demoPageHeaderComplete() {
+	@ui.PageHeader(ui.PageProps{
+		Crumbs: []ui.Crumb{{Label: "Utilisateurs", Href: "/users"}, {Label: "Amélie Rousseau"}},
+		Title:  "Amélie Rousseau", Subtitle: "Administrateur · compte actif",
+		Actions: tier2SecondaryActions(), PrimaryAction: tier2PrimaryAction(),
+	})
+}
+
+templ demoStatRow() {
+	@ui.StatRow([]ui.Stat{
+		{Label: "Revenu mensuel", Value: "48 920 €", Change: "+8,4 %", Description: "sur 30 jours", Tone: "success"},
+		{Label: "Comptes actifs", Value: "1 284", Change: "+32", Description: "ce mois", Tone: "success"},
+		{Label: "Impayés", Value: "17", Change: "+3", Description: "à traiter", Tone: "error"},
+	})
+}
+
+templ demoSlideOver() {
+	<div class="grid sm:grid-cols-[auto_minmax(18rem,26rem)] gap-6 items-start">
+		@ui.SlideOverTrigger(ui.SlideOverProps{Href: "/users/42/edit", Label: "Modifier Amélie", AcceptLocation: "/users/*", ReloadTarget: "#users"})
+		<div class="h-80 rounded-box border border-base-300 overflow-hidden shadow-lg">
+			@ui.SlideOver("Modifier l'utilisateur") {
+				<form class="flex flex-col gap-1">
+					@ui.Field(ui.FieldProps{Name: "slide-name", Label: "Nom", Value: "Amélie Rousseau"})
+					@ui.Field(ui.FieldProps{Name: "slide-email", Label: "E-mail", Type: "email", Value: "amelie@acme.co"})
+					@ui.FormActions("Enregistrer", "/users/42")
+				</form>
+			}
+		</div>
+	</div>
+}
+
+templ demoDetailTabs() {
+	@ui.DetailTabs([]ui.DetailTab{{Label: "Vue d'ensemble", Href: "/users/42"}, {Label: "Factures", Href: "/users/42/invoices", Meta: "12"}, {Label: "Sécurité", Href: "/users/42/security"}, {Label: "Audit", Href: "/users/42/audit", Meta: "48"}}, "/users/42/invoices", "#record-detail")
+}
+
+templ demoBulkActionBar() {
+	@ui.BulkActionBar(3, "utilisateur sélectionné", "utilisateurs sélectionnés") {
+		<button class="btn btn-xs">Exporter</button>
+		<button class="btn btn-xs btn-error">Suspendre</button>
+	}
+}
+
+templ demoTier2AuthCard() {
+	@ui.AuthCard(ui.AuthCardProps{Product: "Acme Admin", Title: "Connexion", Subtitle: "Accédez à votre espace d'administration", HeroTitle: "Pilotez vos opérations sans perdre le fil.", HeroText: "Utilisateurs, facturation et audit réunis dans un espace sécurisé."}) {
+		<form class="flex flex-col gap-1 mt-2">
+			@ui.Field(ui.FieldProps{Name: "auth-email", Label: "E-mail", Type: "email", Placeholder: "vous@acme.co"})
+			@ui.Field(ui.FieldProps{Name: "auth-password", Label: "Mot de passe", Type: "password"})
+			<button class="btn btn-primary btn-sm mt-3">Se connecter</button>
+		</form>
+	}
+}
+
+templ demoFileField() {
+	<div class="max-w-lg">
+		@ui.FileField(ui.FileFieldProps{Name: "import", Label: "Importer des utilisateurs", Accept: ".csv,text/csv", Hint: "CSV, 10 Mo maximum.", FileName: "utilisateurs-aout.csv", Uploading: true, Progress: 64})
+	</div>
+}
+
+templ demoAuditTimeline() {
+	@ui.AuditTimeline([]ui.AuditEvent{
+		{Title: "Compte activé", Detail: "L'invitation a été acceptée.", Actor: "Amélie Rousseau", Time: "aujourd'hui, 09:42", Datetime: "2026-08-25T09:42:00-04:00", Tone: "success"},
+		{Title: "Rôle modifié", Detail: "Membre → Administrateur", Actor: "Nora Martin", Time: "24 août, 16:18", Datetime: "2026-08-24T16:18:00-04:00", Tone: "warning"},
+		{Title: "Invitation envoyée", Actor: "Nora Martin", Time: "22 août, 11:03", Datetime: "2026-08-22T11:03:00-04:00", Tone: "info"},
+	})
+}
+
+templ demoThemeToggle() {
+	@ui.ThemeToggle(false)
+}

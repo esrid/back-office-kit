@@ -1,0 +1,49 @@
+package ui
+
+import "strconv"
+
+type FileFieldProps struct {
+	Name      string
+	Label     string
+	Accept    string
+	Hint      string
+	Error     string
+	FileName  string
+	Progress  int
+	Uploading bool
+	Required  bool
+	Multiple  bool
+	Disabled  bool
+}
+
+func (f FileFieldProps) id() string { return "f-" + f.Name }
+func (f FileFieldProps) progress() int {
+	return min(max(f.Progress, 0), 100)
+}
+
+// FileField renders an upload control and optional server-reported progress.
+templ FileField(f FileFieldProps) {
+	<fieldset class="fieldset">
+		<label class="fieldset-legend" for={ f.id() }>{ f.Label }</label>
+		<input
+			id={ f.id() }
+			name={ f.Name }
+			type="file"
+			accept={ f.Accept }
+			class={ "file-input w-full", templ.KV("file-input-error", f.Error != "") }
+			required?={ f.Required }
+			multiple?={ f.Multiple }
+			disabled?={ f.Disabled }
+			if f.Error != "" {
+				aria-invalid="true"
+			}
+		/>
+		if f.Uploading {
+			<div class="mt-1 flex flex-col gap-1" aria-live="polite">
+				<div class="flex justify-between gap-3 text-xs"><span>{ f.FileName }</span><span>{ strconv.Itoa(f.progress()) }%</span></div>
+				<progress class="progress progress-primary w-full" value={ strconv.Itoa(f.progress()) } max="100" aria-label="Progression de l’envoi"></progress>
+			</div>
+		}
+		@fieldNote(f.Hint, f.Error)
+	</fieldset>
+}

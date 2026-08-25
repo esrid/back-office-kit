@@ -1,0 +1,71 @@
+package ui
+
+// Action describes a contextual record action.
+type Action struct {
+	Label    string
+	Href     string
+	Method   string
+	Confirm  string
+	Tone     string
+	Disabled bool
+}
+
+func actionClass(tone string) string {
+	if tone == "error" {
+		return "text-error"
+	}
+	return ""
+}
+
+// RowActionMenu keeps secondary row actions out of the table's visual flow.
+//
+// Actions carrying a Method are submit buttons, never links: state changes must
+// not ride on GET, which http.CrossOriginProtection always allows and which
+// prefetching or [up-preload] can trigger without a click.
+//
+// The buttons stay direct children of their <li> and reference a single form
+// through [form], because daisyUI styles `.menu li > *`: wrapping each button
+// in its own form -- even with display:contents -- moves that selector onto the
+// wrapper, and the item loses its padding and hover state.
+//
+// Without JavaScript the server receives a POST to the action's own URL; the
+// intended verb travels in [up-method] for Unpoly.
+templ RowActionMenu(id string, label string, actions []Action) {
+	<details class="dropdown dropdown-end">
+		<summary class="btn btn-ghost btn-xs btn-square" aria-label={ label }>&#8226;&#8226;&#8226;</summary>
+		<ul class="dropdown-content menu bg-base-100 rounded-box z-20 w-44 p-1.5 shadow-lg border border-base-300">
+			for _, action := range actions {
+				<li>
+					if action.Disabled {
+						<button type="button" disabled>{ action.Label }</button>
+					} else if action.Method == "" {
+						<a href={ templ.SafeURL(action.Href) } class={ actionClass(action.Tone) } up-follow>{ action.Label }</a>
+					} else {
+						<button
+							type="submit"
+							form={ id }
+							formaction={ templ.SafeURL(action.Href) }
+							class={ actionClass(action.Tone) }
+							up-method={ action.Method }
+							if action.Confirm != "" {
+								up-confirm={ action.Confirm }
+							}
+						>{ action.Label }</button>
+					}
+				</li>
+			}
+		</ul>
+		if hasMethodAction(actions) {
+			<form id={ id } method="post" hidden up-submit></form>
+		}
+	</details>
+}
+
+func hasMethodAction(actions []Action) bool {
+	for _, a := range actions {
+		if !a.Disabled && a.Method != "" {
+			return true
+		}
+	}
+	return false
+}

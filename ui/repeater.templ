@@ -1,0 +1,35 @@
+package ui
+
+import "strconv"
+
+type RepeaterRow struct {
+	ID         string
+	RemoveHref string
+	Content    templ.Component
+}
+
+// RepeaterField manages server-rendered nested form rows.
+//
+// Add and remove are submit buttons with [formaction], never links: they change
+// state, and http.CrossOriginProtection always allows GET. The buttons also
+// carry the rows already typed, so adding a line never loses a draft.
+// A <fieldset> cannot contain a nested <form>, which rules out the alternative.
+templ RepeaterField(id string, label string, rows []RepeaterRow, addHref string) {
+	<fieldset id={ id } class="fieldset gap-3">
+		<legend class="fieldset-legend">{ label }</legend>
+		<div class="flex flex-col gap-2">
+			for i, row := range rows {
+				<div class="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] gap-2 items-start rounded-box border border-base-300 p-3">
+					<span class="text-xs opacity-45 pt-2 tabular-nums">{ strconv.Itoa(i + 1) }</span>
+					<div class="min-w-0">
+						if row.Content != nil {
+							@row.Content
+						}
+					</div>
+					<button type="submit" formaction={ templ.SafeURL(row.RemoveHref) } formnovalidate up-target={ "#" + id } class="btn btn-ghost btn-xs text-error" aria-label={ "Supprimer la ligne " + strconv.Itoa(i+1) }>Supprimer</button>
+				</div>
+			}
+		</div>
+		<button type="submit" formaction={ templ.SafeURL(addHref) } formnovalidate up-target={ "#" + id } class="btn btn-sm btn-ghost self-start">+ Ajouter</button>
+	</fieldset>
+}

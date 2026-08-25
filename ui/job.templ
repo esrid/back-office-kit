@@ -1,0 +1,84 @@
+package ui
+
+import "strconv"
+
+type JobStatus string
+
+const (
+	JobPending JobStatus = "pending"
+	JobRunning JobStatus = "running"
+	JobSuccess JobStatus = "success"
+	JobError   JobStatus = "error"
+)
+
+type JobProgressProps struct {
+	ID         string
+	Title      string
+	Status     JobStatus
+	Progress   int
+	Detail     string
+	PollSource string
+	ResultHref string
+}
+
+func jobProgress(value int) int {
+	return min(max(value, 0), 100)
+}
+
+func jobTone(status JobStatus) string {
+	if status == JobSuccess {
+		return "success"
+	}
+	if status == JobError {
+		return "error"
+	}
+	if status == JobRunning {
+		return "info"
+	}
+	return "warning"
+}
+
+func jobLabel(status JobStatus) string {
+	switch status {
+	case JobRunning:
+		return "En cours"
+	case JobSuccess:
+		return "Terminé"
+	case JobError:
+		return "Échec"
+	default:
+		return "En attente"
+	}
+}
+
+// JobProgress polls while queued/running and stops when the server renders a terminal state.
+templ JobProgress(p JobProgressProps) {
+	<section
+		id={ p.ID }
+		class="card card-border bg-base-100"
+		aria-live="polite"
+		if (p.Status == JobPending || p.Status == JobRunning) && p.PollSource != "" {
+			up-poll
+			up-interval="2000"
+			up-source={ p.PollSource }
+		}
+	>
+		<div class="card-body p-4 gap-3">
+			<div class="flex items-center justify-between gap-3">
+				<h2 class="font-medium">{ p.Title }</h2><span class={ "badge badge-sm", toneOf(jobTone(p.Status)).Badge }>{ jobLabel(p.Status) }</span>
+			</div>
+			if p.Status == JobPending || p.Status == JobRunning {
+				<progress class="progress progress-primary w-full" value={ strconv.Itoa(jobProgress(p.Progress)) } max="100"></progress>
+			}
+			<p class="text-sm opacity-65">{ p.Detail }</p>
+			if p.Status == JobSuccess && p.ResultHref != "" {
+				<div class="card-actions"><a href={ templ.SafeURL(p.ResultHref) } class="btn btn-primary btn-sm">Télécharger le résultat</a></div>
+			}
+			if p.Status == JobError {
+				<div class="card-actions">
+					{ children... }
+				</div>
+			}
+		</div>
+	</section>
+}

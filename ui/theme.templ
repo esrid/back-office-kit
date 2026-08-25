@@ -1,0 +1,6 @@
+package ui
+
+// ThemeToggle switches between the configured light and dark daisyUI themes.
+templ ThemeToggle(dark bool) {
+	<label class="flex cursor-pointer items-center gap-2 text-sm"><span>Clair</span><input type="checkbox" value="dark" class="toggle toggle-sm theme-controller" checked?={ dark } aria-label="Activer le thème sombre"/><span>Sombre</span></label>
+}

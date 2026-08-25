@@ -1,0 +1,38 @@
+package ui
+
+type InlineEditProps struct {
+	ID         string
+	Label      string
+	EditHref   string
+	CancelHref string
+	Action     string
+	Method     string
+	Editing    bool
+}
+
+// InlineEdit swaps a displayed value for a targeted server-rendered form.
+templ InlineEdit(p InlineEditProps, display templ.Component) {
+	<div id={ p.ID } class="min-w-0">
+		if p.Editing {
+			<form method="post" action={ templ.SafeURL(p.Action) } up-submit up-target={ "#" + p.ID } class="flex flex-wrap items-end gap-2">
+				if p.Method != "" {
+					<input type="hidden" name="_method" value={ p.Method }/>
+				}
+				<div class="grow min-w-48">
+					{ children... }
+				</div>
+				<button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+				<a href={ templ.SafeURL(p.CancelHref) } up-follow up-target={ "#" + p.ID } class="btn btn-ghost btn-sm">Annuler</a>
+			</form>
+		} else {
+			<div class="group flex items-center justify-between gap-3 rounded-box px-2 py-1 hover:bg-base-200">
+				<div class="min-w-0">
+					if display != nil {
+						@display
+					}
+				</div>
+				<a href={ templ.SafeURL(p.EditHref) } up-follow up-target={ "#" + p.ID } class="btn btn-ghost btn-xs opacity-70 group-hover:opacity-100" aria-label={ "Modifier " + p.Label }>Modifier</a>
+			</div>
+		}
+	</div>
+}

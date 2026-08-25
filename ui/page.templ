@@ -1,0 +1,89 @@
+package ui
+
+// Crumb is one breadcrumb link. An empty Href renders as plain text (the
+// current page).
+type Crumb struct {
+	Label string
+	Href  string
+}
+
+// PageProps is the header every back-office screen shares.
+type PageProps struct {
+	Title         string
+	Subtitle      string
+	Crumbs        []Crumb
+	Actions       templ.Component
+	PrimaryAction templ.Component
+}
+
+// PageHeader is the top of every screen: breadcrumbs, title, subtitle and the
+// actions that belong to the page as a whole.
+templ PageHeader(p PageProps) {
+	<header class="flex flex-col gap-3">
+		if len(p.Crumbs) > 0 {
+			<nav class="breadcrumbs text-sm py-0" aria-label="Fil d'Ariane">
+				<ul>
+					for _, c := range p.Crumbs {
+						<li>
+							if c.Href != "" {
+								<a href={ templ.SafeURL(c.Href) } up-follow>{ c.Label }</a>
+							} else {
+								<span aria-current="page">{ c.Label }</span>
+							}
+						</li>
+					}
+				</ul>
+			</nav>
+		}
+		<div class="flex items-start justify-between gap-4 flex-wrap">
+			<div>
+				<h1 class="text-xl font-semibold tracking-tight">{ p.Title }</h1>
+				if p.Subtitle != "" {
+					<p class="text-sm opacity-60 mt-0.5">{ p.Subtitle }</p>
+				}
+			</div>
+			if p.Actions != nil || p.PrimaryAction != nil {
+				// One flex child, not two: with justify-between, a third child
+				// would strand the secondary actions in the middle of the row.
+				<div class="flex items-center gap-2">
+					if p.Actions != nil {
+						@p.Actions
+					}
+					if p.PrimaryAction != nil {
+						@p.PrimaryAction
+					}
+				</div>
+			}
+		</div>
+	</header>
+}
+
+// Panel is a titled surface. Detail pages, settings and dashboards are all
+// made of these.
+templ Panel(title string, actions templ.Component) {
+	<section class="card card-border bg-base-100">
+		if title != "" {
+			<div class="flex items-center justify-between gap-4 px-5 py-3 border-b border-base-300">
+				<h2 class="font-medium">{ title }</h2>
+				if actions != nil {
+					<div class="flex items-center gap-2">
+						@actions
+					</div>
+				}
+			</div>
+		}
+		<div class="p-5">
+			{ children... }
+		</div>
+	</section>
+}
+
+// DetailList shows one record as label/value rows.
+templ DetailList(rows []Option) {
+	<dl class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-6 gap-y-2.5 text-sm">
+		for _, r := range rows {
+			<dt class="opacity-60">{ r.Label }</dt>
+			<dd>{ r.Value }</dd>
+		}
+	</dl>
+}

@@ -1,0 +1,186 @@
+package ui
+
+import "strconv"
+
+type AgentToolStatus string
+
+const (
+	AgentToolPending AgentToolStatus = "pending"
+	AgentToolRunning AgentToolStatus = "running"
+	AgentToolSuccess AgentToolStatus = "success"
+	AgentToolError   AgentToolStatus = "error"
+	AgentToolSkipped AgentToolStatus = "skipped"
+)
+
+func agentToolTone(status AgentToolStatus) string {
+	switch status {
+	case AgentToolSuccess:
+		return "success"
+	case AgentToolError:
+		return "error"
+	case AgentToolRunning:
+		return "info"
+	default:
+		return "neutral"
+	}
+}
+
+func agentToolLabel(status AgentToolStatus) string {
+	switch status {
+	case AgentToolRunning:
+		return "En cours"
+	case AgentToolSuccess:
+		return "Terminé"
+	case AgentToolError:
+		return "Échec"
+	case AgentToolSkipped:
+		return "Ignoré"
+	default:
+		return "En attente"
+	}
+}
+
+type AgentToolRun struct {
+	ID       string
+	Tool     string
+	Summary  string
+	Status   AgentToolStatus
+	Started  string
+	Duration string
+	Detail   string
+}
+
+// AgentToolRunTimeline exposes tool-level progress without revealing private
+// chain-of-thought or hidden model reasoning.
+templ AgentToolRunTimeline(id string, runs []AgentToolRun, busy bool, pollSource string) {
+	<section
+		id={ id }
+		class="card card-border bg-base-100"
+		aria-label="Exécution des outils"
+		aria-busy={ strconv.FormatBool(busy) }
+		if busy && pollSource != "" {
+			up-poll
+			up-interval="1000"
+			up-source={ pollSource }
+		}
+	>
+		<div class="card-body p-4">
+			<h2 class="font-semibold">Exécution</h2>
+			<ol class="timeline timeline-vertical timeline-compact mt-2">
+				for i, run := range runs {
+					<li>
+						if i > 0 {
+							<hr/>
+						}
+						<div class="timeline-middle"><span class={ "status", toneOf(agentToolTone(run.Status)).Dot } aria-hidden="true"></span></div>
+						<div class="timeline-end timeline-box mb-3 w-full">
+							<div class="flex flex-wrap items-start justify-between gap-2">
+								<div><p class="font-medium text-sm">{ run.Tool }</p><p class="text-xs opacity-65">{ run.Summary }</p></div>
+								<span class={ "badge badge-sm", toneOf(agentToolTone(run.Status)).Badge }>{ agentToolLabel(run.Status) }</span>
+							</div>
+							if run.Detail != "" {
+								<p class="text-xs opacity-55 mt-2">{ run.Detail }</p>
+							}
+							<p class="text-xs opacity-60 mt-1">
+								{ run.Started }
+								if run.Duration != "" {
+									<span>· { run.Duration }</span>
+								}
+							</p>
+						</div>
+						if i < len(runs)-1 {
+							<hr/>
+						}
+					</li>
+				}
+			</ol>
+		</div>
+	</section>
+}
+
+type AgentReceiptChange struct {
+	Label  string
+	Before string
+	After  string
+}
+
+type AgentReceiptLink struct {
+	Label string
+	Href  string
+}
+
+type AgentReceiptProps struct {
+	ReceiptID string
+	PlanID    string
+	Version   string
+	Title     string
+	Summary   string
+	Completed string
+	Status    AgentToolStatus
+	Changes   []AgentReceiptChange
+	Artifacts []AgentReceiptLink
+	Sources   []AgentReceiptLink
+}
+
+// AgentResultReceipt is the durable, inspectable record of what actually ran.
+templ AgentResultReceipt(p AgentReceiptProps) {
+	<article class="card card-border bg-base-100" data-receipt-id={ p.ReceiptID }>
+		<div class="card-body p-4 gap-4">
+			<div class="flex flex-wrap items-start justify-between gap-3"><div><p class="text-xs opacity-50">Reçu { p.ReceiptID } · plan { p.PlanID } v{ p.Version }</p><h2 class="font-semibold">{ p.Title }</h2></div><span class={ "badge badge-sm", toneOf(agentToolTone(p.Status)).Badge }>{ agentToolLabel(p.Status) }</span></div>
+			<p class="text-sm opacity-70">{ p.Summary }</p>
+			if len(p.Changes) > 0 {
+				<div class="overflow-x-auto">
+					<table class="table table-sm">
+						<thead><tr><th>Élément</th><th>Avant</th><th>Après</th></tr></thead>
+						<tbody>
+							for _, change := range p.Changes {
+								<tr><td>{ change.Label }</td><td class="opacity-60">{ change.Before }</td><td class="font-medium">{ change.After }</td></tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+			if len(p.Artifacts) > 0 {
+				<div>
+					<h3 class="text-xs font-medium opacity-60 mb-1">Livrables</h3>
+					<ul class="flex flex-wrap gap-2">
+						for _, link := range p.Artifacts {
+							<li><a href={ templ.SafeURL(link.Href) } class="btn btn-sm">{ link.Label }</a></li>
+						}
+					</ul>
+				</div>
+			}
+			if len(p.Sources) > 0 {
+				<details>
+					<summary class="text-sm link link-hover cursor-pointer">Sources consultées ({ strconv.Itoa(len(p.Sources)) })</summary>
+					<ul class="list-disc pl-5 mt-2 text-sm">
+						for _, link := range p.Sources {
+							<li><a href={ templ.SafeURL(link.Href) } class="link">{ link.Label }</a></li>
+						}
+					</ul>
+				</details>
+			}
+			<p class="text-xs opacity-60">Terminé { p.Completed }</p>
+		</div>
+	</article>
+}
+
+type AgentUndoProps struct {
+	ReceiptID string
+	Action    string
+	Available bool
+	ExpiresAt string
+	Reason    string
+}
+
+// AgentUndoAction always references an execution receipt.
+templ AgentUndoAction(p AgentUndoProps) {
+	<section class="alert" aria-label="Annulation">
+		if p.Available {
+			<span>Cette action peut être annulée jusqu’à { p.ExpiresAt }.</span>
+			<form method="post" action={ templ.SafeURL(p.Action) } up-submit><input type="hidden" name="receipt_id" value={ p.ReceiptID }/><button class="btn btn-sm">Annuler les modifications</button></form>
+		} else {
+			<span><strong>Annulation indisponible.</strong> { p.Reason }</span>
+		}
+	</section>
+}

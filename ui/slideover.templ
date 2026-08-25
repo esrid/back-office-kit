@@ -1,0 +1,67 @@
+package ui
+
+import "strconv"
+
+type SlideOverProps struct {
+	Href           string
+	Label          string
+	AcceptLocation string
+	ReloadTarget   string
+	Class          string
+}
+
+func slideOverAccepted(target string) string {
+	return "up.reload(" + strconv.Quote(target) + ")"
+}
+
+// SlideOverTrigger opens an ordinary server-rendered page as a right drawer.
+//
+// [up-layer] only accepts new/swap/shatter; the overlay type is a separate
+// [up-mode]. Folding them into up-layer="new drawer" parses as an unknown
+// value and the drawer silently never opens as one.
+templ SlideOverTrigger(p SlideOverProps) {
+	<a
+		href={ templ.SafeURL(p.Href) }
+		up-layer="new"
+		up-mode="drawer"
+		up-position="right"
+		class={ "btn btn-sm", templ.KV("btn-primary", p.Class == ""), p.Class }
+		if p.AcceptLocation != "" {
+			up-accept-location={ p.AcceptLocation }
+		}
+		if p.ReloadTarget != "" {
+			up-on-accepted={ slideOverAccepted(p.ReloadTarget) }
+		}
+	>{ p.Label }</a>
+}
+
+// SlideOver frames the page rendered inside the drawer layer.
+templ SlideOver(title string) {
+	<section class="flex flex-col h-full min-h-0 bg-base-100" aria-label={ title }>
+		<header class="flex items-center justify-between gap-4 px-5 py-3 border-b border-base-300">
+			<h2 class="font-semibold">{ title }</h2>
+			<button type="button" class="btn btn-ghost btn-sm btn-square" up-dismiss aria-label="Fermer">✕</button>
+		</header>
+		<div class="p-5 grow overflow-y-auto">
+			{ children... }
+		</div>
+	</section>
+}
+
+// FormActions is the trailing button row of a CRUD form. destroy is optional
+// and gets a native confirmation via [up-confirm].
+templ FormActions(submitLabel string, destroyHref string) {
+	<div class="flex items-center gap-2 pt-2">
+		<button type="submit" class="btn btn-primary btn-sm">{ submitLabel }</button>
+		<button type="button" class="btn btn-ghost btn-sm" up-dismiss>Annuler</button>
+		if destroyHref != "" {
+			<button
+				type="submit"
+				formaction={ templ.SafeURL(destroyHref) }
+				formnovalidate
+				up-confirm="Supprimer définitivement ? Cette action est irréversible."
+				class="btn btn-ghost btn-sm text-error ml-auto"
+			>Supprimer</button>
+		}
+	</div>
+}

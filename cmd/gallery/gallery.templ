@@ -1,0 +1,256 @@
+package main
+
+import "example.com/components/ui"
+import "strconv"
+import "net/url"
+
+templ Gallery(secs []Section) {
+	<div class="gal">
+		<aside class="gal-rail">
+			<div class="gal-brand">
+				<span class="gal-brand-mark"></span>
+				<span>Back-office kit</span>
+			</div>
+			<p class="gal-brand-sub">templ · daisyUI 5 · Unpoly 3</p>
+			<nav class="gal-index">
+				for i, s := range secs {
+					if i == 0 || s.Group != secs[i-1].Group {
+						<span class="gal-index-group">{ s.Group }</span>
+					}
+					<a href={ templ.SafeURL("#" + s.ID) }>
+						<span class="gal-index-n">{ pad(s.N) }</span>
+						<span>{ s.Title }</span>
+					</a>
+				}
+			</nav>
+			<p class="gal-rail-foot">Ordre de construction : chaque bloc ne dépend que des précédents.</p>
+		</aside>
+		<main class="gal-main">
+			<header class="gal-head">
+				<p class="gal-eyebrow">{ strconv.Itoa(len(secs)) } exemples · templ + daisyUI 5 + Unpoly 3</p>
+				<h1>Ce que daisyUI ne fait pas encore</h1>
+				<p class="gal-lede">
+					daisyUI donne les primitives. La première série ajoute la sémantique back-office :
+					tri et pagination portés par l'URL, validation serveur par champ, états vides,
+					statuts cohérents. La suite couvre écrans métier, workflows serveur et interactions
+					agentiques : plan, approbation, exécution observable, reçu, annulation et relais humain.
+					Le dernier niveau traite gouvernance, revue des changements et conflits de version.
+					Rendu réel, pas des maquettes.
+				</p>
+			</header>
+			for i, s := range secs {
+				if i == 0 || s.Group != secs[i-1].Group {
+					<h2 class="gal-group">{ s.Group }</h2>
+				}
+				@sectionView(s)
+			}
+			<footer class="gal-foot">
+				<p>Toute la logique d'URL (tri, pagination) est pure et testée : <code>go test ./ui/</code></p>
+			</footer>
+		</main>
+	</div>
+}
+
+templ sectionView(s Section) {
+	<section class="gal-sec" id={ s.ID }>
+		<div class="gal-sec-head">
+			<span class="gal-sec-n">{ pad(s.N) }</span>
+			<div class="gal-sec-meta">
+				<h3>{ s.Title }</h3>
+				<p class="gal-purpose">{ s.Purpose }</p>
+				<p class="gal-uses">
+					for _, u := range s.Uses {
+						<code>{ u }</code>
+					}
+				</p>
+			</div>
+		</div>
+		<div class={ "gal-stage", s.StageClass }>
+			@s.Demo
+		</div>
+		if s.Snippet != "" {
+			<pre class="gal-code"><code>{ s.Snippet }</code></pre>
+		}
+		if s.Note != "" {
+			<p class="gal-note">{ s.Note }</p>
+		}
+	</section>
+}
+
+func pad(n int) string {
+	if n < 10 {
+		return "0" + strconv.Itoa(n)
+	}
+	return strconv.Itoa(n)
+}
+
+templ demoShell() {
+	@ui.Shell("Utilisateurs", demoNav(), "/users", "amelie@acme.co", []ui.Flash{}) {
+		<div class="flex items-center justify-between gap-4 mb-4">
+			<div>
+				<h1 class="text-lg font-semibold">Utilisateurs</h1>
+				<p class="text-sm opacity-60">142 comptes actifs</p>
+			</div>
+			<button class="btn btn-primary btn-sm">Nouvel utilisateur</button>
+		</div>
+		<div class="rounded-box border border-base-300 h-28 bg-base-200/40"></div>
+	}
+}
+
+templ demoFlashes() {
+	@ui.Flashes([]ui.Flash{
+		{Tone: "success", Text: "Utilisateur mis à jour."},
+		{Tone: "warning", Text: "2 invitations expirent demain."},
+		{Tone: "error", Text: "Import interrompu : ligne 43 invalide."},
+	})
+}
+
+templ demoEmpty() {
+	@ui.EmptyState(
+		"Aucun utilisateur",
+		"Personne ne correspond à ce filtre. Élargissez la recherche ou invitez quelqu'un.",
+		newUserBtn(),
+	)
+}
+
+templ newUserBtn() {
+	<button class="btn btn-sm btn-primary">Inviter un utilisateur</button>
+}
+
+templ demoFields() {
+	<form class="grid sm:grid-cols-2 gap-x-6 gap-y-1 max-w-2xl">
+		@ui.Field(ui.FieldProps{
+			Name: "name", Label: "Nom complet", Value: "Amélie Rousseau", Required: true,
+		})
+		@ui.Field(ui.FieldProps{
+			Name: "email", Label: "E-mail", Type: "email", Value: "amelie@acme",
+			Error: "Cette adresse est déjà utilisée par un autre compte.", Required: true, Validate: true,
+		})
+		@ui.SelectField(ui.FieldProps{
+			Name: "role", Label: "Rôle", Value: "admin", Hint: "Détermine l'accès à la facturation.",
+		}, []ui.Option{
+			{Value: "admin", Label: "Administrateur"},
+			{Value: "member", Label: "Membre"},
+			{Value: "viewer", Label: "Lecture seule"},
+		})
+		@ui.Field(ui.FieldProps{
+			Name: "seats", Label: "Sièges", Type: "number", Value: "12", Hint: "1 à 500.",
+		})
+	</form>
+}
+
+templ demoStatus() {
+	<div class="flex flex-wrap gap-2 items-center">
+		for _, s := range []string{"Active", "Pending", "Failed", "Draft", "Paid", "Processing", "Cancelled", "Archived", "Sabbatique"} {
+			@ui.StatusBadge(s)
+		}
+	</div>
+}
+
+templ demoTable(cols []ui.Column[User], rows []User, q url.Values) {
+	@ui.DataTable("users", cols, rows, q, nil) {
+		@ui.Pagination(3, 142, 20, q, "#users")
+	}
+}
+
+// --- tier 1.5 demos ----------------------------------------------------
+templ primaryAction(label string) {
+	<button class="btn btn-primary btn-sm">{ label }</button>
+}
+
+templ demoFilterBar(q url.Values) {
+	@ui.FilterBar(demoFilters(), q, "#users")
+}
+
+templ demoIndexPage(cols []ui.Column[User], rows []User, q url.Values) {
+	@ui.IndexPage(ui.PageProps{
+		Title:    "Utilisateurs",
+		Subtitle: "142 comptes · 8 invitations en attente",
+		Actions:  primaryAction("Inviter un utilisateur"),
+	}, demoFilterBar(q)) {
+		@demoTable(cols, rows, q)
+	}
+}
+
+templ detailAside() {
+	@ui.Panel("Détails", nil) {
+		@ui.DetailList([]ui.Option{
+			{Label: "Identifiant", Value: "usr_8f31c2"},
+			{Label: "Rôle", Value: "Administrateur"},
+			{Label: "Sièges", Value: "12"},
+			{Label: "Créé le", Value: "14 mars 2024"},
+			{Label: "Dernier accès", Value: "il y a 2 heures"},
+		})
+	}
+	@ui.Panel("Statut", nil) {
+		<div class="flex items-center justify-between gap-3">
+			@ui.StatusBadge("Active")
+			<button class="btn btn-ghost btn-xs text-error">Suspendre</button>
+		</div>
+	}
+}
+
+templ demoDetailPage() {
+	@ui.DetailPage(ui.PageProps{
+		Crumbs:  []ui.Crumb{{Label: "Utilisateurs", Href: "/users"}, {Label: "Amélie Rousseau"}},
+		Title:   "Amélie Rousseau",
+		Actions: primaryAction("Modifier"),
+	}, detailAside()) {
+		@ui.Panel("Activité récente", nil) {
+			<ul class="list text-sm">
+				<li class="list-row px-0"><span class="opacity-60 w-28">il y a 2 h</span><span>Connexion depuis Paris, FR</span></li>
+				<li class="list-row px-0"><span class="opacity-60 w-28">hier</span><span>Rôle changé en Administrateur</span></li>
+				<li class="list-row px-0"><span class="opacity-60 w-28">12 août</span><span>Facture #4192 payée</span></li>
+			</ul>
+		}
+	}
+}
+
+templ formActions() {
+	<button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+	<button type="button" class="btn btn-ghost btn-sm">Annuler</button>
+}
+
+templ demoFormPage() {
+	@ui.FormPage(ui.PageProps{
+		Crumbs: []ui.Crumb{{Label: "Utilisateurs", Href: "/users"}, {Label: "Modifier"}},
+		Title:  "Modifier Amélie Rousseau",
+	}, "/users/42", formActions()) {
+		@ui.Panel("Identité", nil) {
+			<div class="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+				@ui.Field(ui.FieldProps{Name: "fname", Label: "Nom complet", Value: "Amélie Rousseau", Required: true})
+				@ui.Field(ui.FieldProps{Name: "femail", Label: "E-mail", Type: "email", Value: "amelie@acme.co", Required: true, Validate: true})
+			</div>
+		}
+		@ui.Panel("Accès", nil) {
+			<div class="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+				@ui.SelectField(ui.FieldProps{Name: "frole", Label: "Rôle", Value: "admin", Hint: "Détermine l'accès à la facturation."}, []ui.Option{
+					{Value: "admin", Label: "Administrateur"},
+					{Value: "member", Label: "Membre"},
+				})
+				@ui.Field(ui.FieldProps{Name: "fseats", Label: "Sièges", Type: "number", Value: "12"})
+			</div>
+		}
+	}
+}
+
+templ demoSettingsPage() {
+	@ui.SettingsPage(ui.PageProps{Title: "Réglages"}, settingsNav(), "/settings/notifications") {
+		@ui.Panel("Notifications", nil) {
+			@ui.SettingsRow("Résumé quotidien", "Un e-mail chaque matin avec les inscriptions et les paiements de la veille.") {
+				<input type="checkbox" class="toggle toggle-sm" checked/>
+			}
+			@ui.SettingsRow("Échecs de paiement", "Alerte immédiate quand un prélèvement est refusé.") {
+				<input type="checkbox" class="toggle toggle-sm" checked/>
+			}
+			@ui.SettingsRow("Nouveaux appareils", "Prévenir quand un compte se connecte depuis un appareil inconnu.") {
+				<input type="checkbox" class="toggle toggle-sm"/>
+			}
+		}
+		@ui.Panel("Destinataires", nil) {
+			@ui.SettingsRow("Adresse de l'équipe", "Toutes les alertes ci-dessus partent vers cette adresse.") {
+				<input type="email" class="input input-sm w-56" value="ops@acme.co"/>
+			}
+		}
+	}
+}

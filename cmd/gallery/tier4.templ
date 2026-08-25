@@ -1,0 +1,127 @@
+package main
+
+import "example.com/components/ui"
+
+templ demoWorkspacePlan() {
+	@ui.ActionPlan(ui.ActionPlanProps{
+		PlanID: "plan_workspace", Version: "3", Title: "Suspendre les comptes en retard",
+		Summary: "Le backend a identifié 12 comptes selon la politique de facturation.",
+		Risk:    ui.AgentRiskSensitive, Steps: demoAgentPlanSteps(),
+	})
+}
+
+templ demoWorkspaceThread() {
+	@ui.AgentThread(ui.AgentThreadProps{ID: "workspace-thread", Title: "Conversation", Busy: false}) {
+		@ui.AgentMessage(ui.AgentUser, "Vous", "10:12") {
+			Identifie les comptes en retard, suspends-les et préviens leurs propriétaires.
+		}
+		@ui.AgentMessage(ui.AgentAssistant, "Assistant opérations", "10:13") {
+			J’ai trouvé 12 comptes correspondant aux règles du backend. Le plan inclut une suspension réversible et l’envoi de 12 e-mails. Vérifiez-le avant de l’approuver.
+		}
+	}
+}
+
+templ demoAgentWorkspace() {
+	@ui.AgentWorkspace("Assistant opérations", "Conversation, décision et exécution restent lisibles dans un même espace.", demoWorkspacePlan()) {
+		@demoWorkspaceThread()
+		@ui.AgentComposer(ui.AgentComposerProps{
+			ID: "workspace-prompt", Action: "/agent/messages", Name: "prompt",
+			Placeholder: "Demandez une modification ou une nouvelle analyse…",
+			Contexts:    []ui.AgentContext{{Label: "Vue", Value: "Factures en retard", RemoveHref: "/agent/context/view/remove"}},
+		})
+	}
+}
+
+templ demoAgentThread() {
+	<div class="max-w-3xl mx-auto">
+		@ui.AgentThread(ui.AgentThreadProps{ID: "demo-thread", Title: "Conversation", Busy: true, PollSource: "/agent/conversations/conv_42"}) {
+			@ui.AgentMessage(ui.AgentUser, "Vous", "10:12") {
+				Quels comptes nécessitent une intervention aujourd’hui ?
+			}
+			@ui.AgentMessage(ui.AgentAssistant, "Assistant opérations", "10:12") {
+				J’analyse les factures échues et les exceptions définies par votre équipe.
+			}
+			@ui.AgentMessage(ui.AgentSystem, "Système", "10:13") {
+				La recherche est terminée. 12 comptes correspondent aux règles du backend.
+			}
+		}
+	</div>
+}
+
+templ demoAgentComposer() {
+	<div class="max-w-3xl mx-auto">
+		@ui.AgentComposer(ui.AgentComposerProps{
+			ID: "demo-agent-prompt", Action: "/agent/messages", Name: "prompt",
+			Placeholder: "Décrivez le résultat souhaité…", SendLabel: "Proposer un plan",
+			Contexts: []ui.AgentContext{
+				{Label: "Vue", Value: "Factures en retard", RemoveHref: "/agent/context/view/remove"},
+				{Label: "Période", Value: "30 jours", RemoveHref: "/agent/context/period/remove"},
+			},
+		})
+	</div>
+}
+
+templ demoAgentSuggestions() {
+	@ui.AgentSuggestionSet("Que souhaitez-vous faire ?", []ui.AgentSuggestion{
+		{Label: "Résumer les anomalies", Description: "Lire les données et produire une synthèse sans modification.", Href: "/agent/suggest/summary", Risk: ui.AgentRiskRead},
+		{Label: "Préparer les suspensions", Description: "Construire un plan réversible à vérifier avant exécution.", Href: "/agent/suggest/suspend", Risk: ui.AgentRiskWrite},
+		{Label: "Suspendre et notifier", Description: "Préparer une action avec effet externe nécessitant une approbation.", Href: "/agent/suggest/notify", Risk: ui.AgentRiskSensitive},
+	}, "#demo-thread")
+}
+
+templ demoActionPlan() {
+	@ui.ActionPlan(ui.ActionPlanProps{
+		PlanID: "plan_preview", Version: "3", Title: "Suspendre 12 comptes et notifier leurs propriétaires",
+		Summary: "Le risque global reprend le niveau le plus élevé décidé par le backend.",
+		Risk:    ui.AgentRiskSensitive, Steps: demoAgentPlanSteps(),
+	})
+}
+
+templ demoAgentImpact() {
+	@ui.AgentImpactSummary(demoAgentImpacts())
+}
+
+templ demoApprovalImpact() {
+	@ui.AgentImpactSummary(demoAgentImpacts())
+}
+
+templ demoApprovalCard() {
+	<div class="max-w-3xl mx-auto">
+		@ui.ApprovalCard(ui.ApprovalCardProps{
+			PlanID: "plan_7b31", PlanVersion: "3", PlanDigest: "sha256:92a7e1c4",
+			Title: "Approuver le plan complet", Summary: "Cette approbation autorise les trois étapes exactement telles qu’elles sont présentées.",
+			Risk: ui.AgentRiskSensitive, Action: "/agent/plans/plan_7b31/approve", RejectHref: "/agent/plans/plan_7b31/reject",
+			ConfirmLabel: "Approuver et exécuter", RequireText: "SUSPENDRE 12 COMPTES", ExpiresAt: "dans 10 minutes", GlobalApproval: true,
+		}, demoApprovalImpact())
+	</div>
+}
+
+templ demoToolTimeline() {
+	<div class="max-w-3xl mx-auto">
+		@ui.AgentToolRunTimeline("demo-tool-runs", demoAgentToolRuns(), true, "/agent/runs/run_91f2")
+	</div>
+}
+
+templ demoResultReceipt() {
+	<div class="max-w-3xl mx-auto">
+		@ui.AgentResultReceipt(demoAgentReceipt())
+	</div>
+}
+
+templ demoUndoAction() {
+	@ui.AgentUndoAction(ui.AgentUndoProps{
+		ReceiptID: "receipt_91f2", Action: "/agent/receipts/receipt_91f2/undo",
+		Available: true, ExpiresAt: "aujourd’hui à 18:00",
+	})
+}
+
+templ demoHumanHandoff() {
+	<div class="max-w-2xl mx-auto">
+		@ui.AgentHumanHandoff(ui.AgentHandoffProps{
+			Title:   "Une validation métier est nécessaire",
+			Message: "Deux comptes disposent d’une exception contractuelle. L’automatisation s’arrête et transmet le plan, les sources et les décisions déjà prises.",
+			Queue:   "Facturation", ExpectedWait: "moins de 30 minutes",
+			Action: "/agent/handoffs", ConversationID: "conv_42",
+		})
+	</div>
+}

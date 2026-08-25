@@ -1,0 +1,39 @@
+package ui
+
+type AuditEvent struct {
+	Title    string
+	Detail   string
+	Actor    string
+	Time     string
+	Datetime string
+	Tone     string
+}
+
+// AuditTimeline shows immutable record history in chronological order.
+templ AuditTimeline(events []AuditEvent) {
+	<ol class="timeline timeline-vertical timeline-compact" aria-label="Historique">
+		for i, event := range events {
+			<li>
+				if i > 0 {
+					<hr/>
+				}
+				<div class="timeline-middle"><span class={ "status", toneOf(event.Tone).Dot } aria-hidden="true"></span></div>
+				<div class="timeline-end timeline-box mb-3 w-full max-w-xl">
+					<div class="flex items-start justify-between gap-4">
+						<p class="font-medium text-sm">{ event.Title }</p>
+						<time class="text-xs opacity-55 whitespace-nowrap" datetime={ event.Datetime }>{ event.Time }</time>
+					</div>
+					if event.Detail != "" {
+						<p class="text-sm opacity-70 mt-1">{ event.Detail }</p>
+					}
+					if event.Actor != "" {
+						<p class="text-xs opacity-50 mt-1">par { event.Actor }</p>
+					}
+				</div>
+				if i < len(events)-1 {
+					<hr/>
+				}
+			</li>
+		}
+	</ol>
+}

@@ -1,0 +1,52 @@
+package ui
+
+// Shell is the back-office frame: collapsible sidebar, top bar, flash zone
+// and a <main> content region.
+//
+// <main> is an Unpoly default main target, so plain [up-follow] links swap
+// only the content region without an explicit [up-target].
+templ Shell(title string, nav []NavItem, current string, user string, flashes []Flash) {
+	<div class="drawer lg:drawer-open">
+		<input id="app-drawer" type="checkbox" class="drawer-toggle"/>
+		<div class="drawer-content flex flex-col min-h-screen">
+			<header class="navbar bg-base-200 border-b border-base-300 min-h-12 px-3">
+				<div class="navbar-start gap-2">
+					<label for="app-drawer" class="btn btn-ghost btn-sm btn-square lg:hidden" aria-label="Menu">
+						@iconMenu()
+					</label>
+					<span class="font-semibold">{ title }</span>
+				</div>
+				<div class="navbar-end gap-2">
+					<span class="text-sm opacity-70 hidden sm:inline">{ user }</span>
+					<form method="post" action="/logout">
+						<button class="btn btn-ghost btn-sm">Déconnexion</button>
+					</form>
+				</div>
+			</header>
+			@Flashes(flashes)
+			<main class="grow p-4 sm:p-6">
+				{ children... }
+			</main>
+		</div>
+		<div class="drawer-side z-20">
+			<label for="app-drawer" aria-label="Fermer" class="drawer-overlay"></label>
+			<ul class="menu bg-base-200 min-h-full w-60 p-3 gap-0.5 border-r border-base-300">
+				<li class="menu-title">Administration</li>
+				for _, n := range nav {
+					<li>
+						<a
+							href={ templ.SafeURL(n.Href) }
+							class={ templ.KV("menu-active", n.Href == current) }
+							up-follow
+						>
+							if n.Icon != "" {
+								@icon(n.Icon)
+							}
+							{ n.Label }
+						</a>
+					</li>
+				}
+			</ul>
+		</div>
+	</div>
+}

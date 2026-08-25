@@ -1,0 +1,3 @@
+# Ignored modernization suggestions
+# Format: <date> <category> <description>
+2026-08-25 maps-clone cloneValues copies each []string on purpose; maps.Clone is shallow and would share backing arrays with the caller's url.Values, breaking the "never mutate the caller" guarantee the pagination and filter tests assert.

@@ -1,0 +1,164 @@
+package ui
+
+import "strconv"
+
+type AgentRisk string
+
+const (
+	AgentRiskRead      AgentRisk = "read"
+	AgentRiskWrite     AgentRisk = "write"
+	AgentRiskSensitive AgentRisk = "sensitive"
+)
+
+func agentRiskLabel(risk AgentRisk) string {
+	switch risk {
+	case AgentRiskWrite:
+		return "Modification réversible"
+	case AgentRiskSensitive:
+		return "Action sensible"
+	default:
+		return "Lecture seule"
+	}
+}
+
+func agentRiskTone(risk AgentRisk) string {
+	switch risk {
+	case AgentRiskWrite:
+		return "warning"
+	case AgentRiskSensitive:
+		return "error"
+	default:
+		return "info"
+	}
+}
+
+templ AgentRiskBadge(risk AgentRisk) {
+	<span class={ "badge badge-sm", toneOf(agentRiskTone(risk)).Badge }>{ agentRiskLabel(risk) }</span>
+}
+
+type AgentPlanStep struct {
+	Title       string
+	Description string
+	Tool        string
+	Target      string
+	Risk        AgentRisk
+}
+
+type ActionPlanProps struct {
+	PlanID  string
+	Version string
+	Title   string
+	Summary string
+	Risk    AgentRisk
+	Steps   []AgentPlanStep
+}
+
+// ActionPlan is a preview, never an authorization. The immutable identifiers
+// are exposed for inspection but execution requires ApprovalCard.
+templ ActionPlan(p ActionPlanProps) {
+	<section class="card card-border bg-base-100" data-plan-id={ p.PlanID } data-plan-version={ p.Version } aria-labelledby={ p.PlanID + "-title" }>
+		<div class="card-body p-4 gap-3">
+			<div class="flex flex-wrap items-start justify-between gap-3">
+				<div><p class="text-xs opacity-50">Plan { p.PlanID } · version { p.Version }</p><h2 id={ p.PlanID + "-title" } class="font-semibold">{ p.Title }</h2></div>@AgentRiskBadge(p.Risk)
+			</div>
+			<p class="text-sm opacity-70">{ p.Summary }</p>
+			<ol class="flex flex-col gap-2">
+				for i, step := range p.Steps {
+					<li class="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 rounded-box bg-base-200 p-3">
+						<span class="text-xs tabular-nums opacity-50">{ strconv.Itoa(i + 1) }</span>
+						<div>
+							<div class="flex flex-wrap items-start justify-between gap-2">
+								<p class="font-medium text-sm">{ step.Title }</p>@AgentRiskBadge(step.Risk)
+							</div>
+							<p class="text-xs opacity-65 mt-0.5">{ step.Description }</p>
+							<p class="text-xs opacity-60 mt-1">Outil : { step.Tool } · cible : { step.Target }</p>
+						</div>
+					</li>
+				}
+			</ol>
+		</div>
+	</section>
+}
+
+type AgentImpactItem struct {
+	Label string
+	Value string
+	Tone  string
+}
+
+// AgentImpactSummary states scope and side effects in concrete quantities.
+templ AgentImpactSummary(items []AgentImpactItem) {
+	<dl class="grid sm:grid-cols-2 gap-2" aria-label="Impact prévu">
+		for _, item := range items {
+			<div class="rounded-box border border-base-300 p-3"><dt class="text-xs opacity-55">{ item.Label }</dt><dd class={ "font-medium text-sm mt-0.5", toneOf(item.Tone).Text }>{ item.Value }</dd></div>
+		}
+	</dl>
+}
+
+type ApprovalCardProps struct {
+	PlanID         string
+	PlanVersion    string
+	PlanDigest     string
+	Title          string
+	Summary        string
+	Risk           AgentRisk
+	Action         string
+	RejectHref     string
+	ConfirmLabel   string
+	RequireText    string
+	ExpiresAt      string
+	GlobalApproval bool
+}
+
+func approvalMode(global bool) string {
+	if global {
+		return "globale"
+	}
+	return "partielle"
+}
+
+func approvalLabel(label string) string {
+	if label == "" {
+		return "Approuver"
+	}
+	return label
+}
+
+// ApprovalCard binds approval to an exact backend-issued plan version and
+// digest. The backend must reject stale or mismatched submissions.
+templ ApprovalCard(p ApprovalCardProps, impact templ.Component) {
+	<section class={ "card border-2 bg-base-100", templ.KV("border-error", p.Risk == AgentRiskSensitive), templ.KV("border-warning", p.Risk == AgentRiskWrite), templ.KV("border-info", p.Risk == AgentRiskRead) } aria-labelledby={ p.PlanID + "-approval-title" }>
+		<form method="post" action={ templ.SafeURL(p.Action) } up-submit class="card-body p-4 gap-4">
+			<input type="hidden" name="plan_id" value={ p.PlanID }/>
+			<input type="hidden" name="plan_version" value={ p.PlanVersion }/>
+			<input type="hidden" name="plan_digest" value={ p.PlanDigest }/>
+			<div class="flex flex-wrap items-start justify-between gap-3">
+				<div><p class="text-xs opacity-50">Approbation { approvalMode(p.GlobalApproval) }</p><h2 id={ p.PlanID + "-approval-title" } class="font-semibold">{ p.Title }</h2></div>@AgentRiskBadge(p.Risk)
+			</div>
+			<p class="text-sm opacity-70">{ p.Summary }</p>
+			if impact != nil {
+				@impact
+			}
+			if p.RequireText != "" {
+				<label class="fieldset"><span class="fieldset-legend">Saisissez <strong>{ p.RequireText }</strong> pour confirmer</span><input class="input w-full" name="confirmation" autocomplete="off" required/></label>
+			}
+			if p.ExpiresAt != "" {
+				<p class="text-xs opacity-50">Cette approbation expire { p.ExpiresAt }.</p>
+			}
+			<div class="card-actions justify-end">
+				if p.RejectHref != "" {
+					// A submit button with [formaction], not a link: rejecting is a
+					// state change, so it must not ride on GET — http.CrossOriginProtection
+					// always allows safe methods. It also submits the same
+					// plan_id/version/digest, so a rejection is bound to the exact plan.
+					// [formnovalidate] is mandatory here: RequireText marks the
+					// confirmation input required, and without it the browser would
+					// force the operator to type the confirmation phrase in order to
+					// REFUSE the plan.
+					<button type="submit" formaction={ templ.SafeURL(p.RejectHref) } formnovalidate class="btn btn-ghost btn-sm">Refuser</button>
+				}
+				<button type="submit" class={ "btn btn-sm", templ.KV("btn-error", p.Risk == AgentRiskSensitive), templ.KV("btn-warning", p.Risk == AgentRiskWrite), templ.KV("btn-info", p.Risk == AgentRiskRead) }>{ approvalLabel(p.ConfirmLabel) }</button>
+			</div>
+		</form>
+	</section>
+}

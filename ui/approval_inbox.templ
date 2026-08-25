@@ -1,0 +1,168 @@
+package ui
+
+import "strconv"
+
+type ApprovalStatus string
+
+const (
+	ApprovalPending  ApprovalStatus = "pending"
+	ApprovalApproved ApprovalStatus = "approved"
+	ApprovalRejected ApprovalStatus = "rejected"
+	ApprovalExpired  ApprovalStatus = "expired"
+)
+
+func approvalStatusLabel(status ApprovalStatus) string {
+	switch status {
+	case ApprovalApproved:
+		return "Approuvée"
+	case ApprovalRejected:
+		return "Refusée"
+	case ApprovalExpired:
+		return "Expirée"
+	default:
+		return "En attente"
+	}
+}
+
+func approvalStatusTone(status ApprovalStatus) string {
+	switch status {
+	case ApprovalApproved:
+		return "success"
+	case ApprovalRejected:
+		return "error"
+	case ApprovalPending:
+		return "warning"
+	default:
+		return "neutral"
+	}
+}
+
+type ApprovalRequest struct {
+	ID                string
+	PlanID            string
+	PlanVersion       string
+	Title             string
+	Summary           string
+	Requester         string
+	RequestedAt       string
+	RequestedDatetime string
+	ExpiresAt         string
+	ExpiresDatetime   string
+	Risk              AgentRisk
+	Status            ApprovalStatus
+	ReviewHref        string
+}
+
+type ApprovalInboxProps struct {
+	ID         string
+	Title      string
+	Busy       bool
+	PollSource string
+	Target     string
+	Items      []ApprovalRequest
+	Toolbar    templ.Component
+	Empty      templ.Component
+}
+
+func approvalInboxTitle(title string) string {
+	if title == "" {
+		return "Approbations"
+	}
+	return title
+}
+
+func approvalReviewLabel(status ApprovalStatus) string {
+	if status == ApprovalPending {
+		return "Examiner"
+	}
+	return "Voir"
+}
+
+// ApprovalInbox presents durable backend approval requests. It does not
+// approve a plan itself; each item links to its exact review surface.
+templ ApprovalInbox(p ApprovalInboxProps) {
+	<section
+		id={ p.ID }
+		class="card card-border bg-base-100"
+		aria-labelledby={ p.ID + "-title" }
+		aria-busy={ strconv.FormatBool(p.Busy) }
+		if p.Busy && p.PollSource != "" {
+			up-poll
+			up-interval="5000"
+			up-source={ p.PollSource }
+		}
+	>
+		<div class="card-body p-4 gap-4">
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<h2 id={ p.ID + "-title" } class="font-semibold">{ approvalInboxTitle(p.Title) }</h2>
+					<p class="text-sm opacity-70">{ strconv.Itoa(len(p.Items)) } demande(s)</p>
+				</div>
+				if p.Busy {
+					<span class="inline-flex items-center gap-2 text-xs opacity-70"><span class="loading loading-dots loading-xs"></span>Actualisation</span>
+				}
+			</div>
+			if p.Toolbar != nil {
+				@p.Toolbar
+			}
+			if len(p.Items) == 0 {
+				if p.Empty != nil {
+					@p.Empty
+				} else {
+					@EmptyState("Aucune approbation", "Les nouvelles demandes apparaîtront ici.", nil)
+				}
+			} else {
+				<ul class="flex flex-col gap-2">
+					for _, item := range p.Items {
+						<li>
+							<article class="rounded-box border border-base-300 p-3" data-approval-id={ item.ID } data-plan-id={ item.PlanID } data-plan-version={ item.PlanVersion }>
+								<div class="flex flex-wrap items-start justify-between gap-3">
+									<div class="min-w-0">
+										<p class="text-xs opacity-60">Plan { item.PlanID } · version { item.PlanVersion }</p>
+										<h3 class="font-medium text-sm mt-0.5">{ item.Title }</h3>
+									</div>
+									<div class="flex flex-wrap gap-1.5">
+										@AgentRiskBadge(item.Risk)
+										<span class={ "badge badge-sm", toneOf(approvalStatusTone(item.Status)).Badge }>{ approvalStatusLabel(item.Status) }</span>
+									</div>
+								</div>
+								if item.Summary != "" {
+									<p class="text-sm opacity-70 mt-2">{ item.Summary }</p>
+								}
+								<div class="flex flex-wrap items-end justify-between gap-3 mt-3">
+									<p class="text-xs opacity-60">
+										if item.Requester != "" {
+											<span>Demandée par { item.Requester }</span>
+										}
+										if item.RequestedAt != "" {
+											if item.Requester != "" {
+												<span>· </span>
+											}
+											<time datetime={ item.RequestedDatetime }>{ item.RequestedAt }</time>
+										}
+										if item.ExpiresAt != "" {
+											if item.Requester != "" || item.RequestedAt != "" {
+												<span>· </span>
+											}
+											<span>expire <time datetime={ item.ExpiresDatetime }>{ item.ExpiresAt }</time></span>
+										}
+									</p>
+									if item.ReviewHref != "" {
+										<a
+											href={ templ.SafeURL(item.ReviewHref) }
+											up-follow
+											if p.Target != "" {
+												up-target={ p.Target }
+											}
+											class="btn btn-sm"
+										>{ approvalReviewLabel(item.Status) }</a>
+									}
+								</div>
+							</article>
+						</li>
+					}
+				</ul>
+			}
+		</div>
+	</section>
+}

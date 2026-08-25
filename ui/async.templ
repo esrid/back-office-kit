@@ -1,0 +1,51 @@
+package ui
+
+import "strconv"
+
+type ResourceStatus string
+
+const (
+	ResourceReady   ResourceStatus = "ready"
+	ResourceLoading ResourceStatus = "loading"
+	ResourceEmpty   ResourceStatus = "empty"
+	ResourceError   ResourceStatus = "error"
+	ResourceStale   ResourceStatus = "stale"
+)
+
+type AsyncStateProps struct {
+	ID          string
+	Status      ResourceStatus
+	Title       string
+	Message     string
+	RetryHref   string
+	EmptyAction templ.Component
+}
+
+// AsyncState standardizes loading, empty, failed, stale and ready fragments.
+templ AsyncState(p AsyncStateProps) {
+	<section id={ p.ID } class="min-w-0" aria-busy={ strconv.FormatBool(p.Status == ResourceLoading) }>
+		switch p.Status {
+			case ResourceLoading:
+				<div class="flex flex-col gap-3 py-4" role="status"><span class="loading loading-spinner loading-sm"></span><span class="sr-only">Chargement</span><div class="skeleton h-5 w-2/3"></div><div class="skeleton h-20 w-full"></div></div>
+			case ResourceEmpty:
+				@EmptyState(p.Title, p.Message, p.EmptyAction)
+			case ResourceError:
+				<div class="alert alert-error" role="alert">
+					<div><p class="font-medium">{ p.Title }</p><p class="text-sm">{ p.Message }</p></div>
+					if p.RetryHref != "" {
+						<a href={ templ.SafeURL(p.RetryHref) } up-follow up-target={ "#" + p.ID } class="btn btn-sm">Réessayer</a>
+					}
+				</div>
+			case ResourceStale:
+				<div class="alert alert-warning mb-3" role="status">
+					<span>{ p.Message }</span>
+					if p.RetryHref != "" {
+						<a href={ templ.SafeURL(p.RetryHref) } up-follow up-target={ "#" + p.ID } class="btn btn-xs">Actualiser</a>
+					}
+				</div>
+				{ children... }
+			default:
+				{ children... }
+		}
+	</section>
+}

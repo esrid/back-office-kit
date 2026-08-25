@@ -1,0 +1,97 @@
+package ui
+
+// FieldProps describes one form control.
+// Each field renders as its own <fieldset> because that is what Unpoly's
+// [up-validate] targets by default (X-Up-Target: fieldset:has(#id)); without
+// the wrapper the server has no stable fragment to re-render.
+type FieldProps struct {
+	Name        string
+	Label       string
+	Type        string // defaults to "text"
+	Value       string
+	Placeholder string
+	Hint        string
+	Error       string
+	Required    bool
+	Disabled    bool
+	Autofocus   bool
+	Validate    bool // emit [up-validate] to check this field server-side on change
+}
+
+func (f FieldProps) inputType() string {
+	if f.Type == "" {
+		return "text"
+	}
+	return f.Type
+}
+
+// id is the DOM id, also used by the <label for> and by Unpoly's fieldset:has() target.
+func (f FieldProps) id() string { return "f-" + f.Name }
+
+// Field renders a labelled input with hint and server-side error.
+templ Field(f FieldProps) {
+	<fieldset class="fieldset">
+		<label class="fieldset-legend" for={ f.id() }>
+			{ f.Label }
+			if f.Required {
+				<span class="text-error" aria-hidden="true">*</span>
+			}
+		</label>
+		<input
+			id={ f.id() }
+			name={ f.Name }
+			type={ f.inputType() }
+			value={ f.Value }
+			placeholder={ f.Placeholder }
+			class={ "input w-full", templ.KV("input-error", f.Error != "") }
+			required?={ f.Required }
+			disabled?={ f.Disabled }
+			autofocus?={ f.Autofocus }
+			if f.Error != "" {
+				aria-invalid="true"
+			}
+			if f.Validate {
+				up-validate
+			}
+		/>
+		@fieldNote(f.Hint, f.Error)
+	</fieldset>
+}
+
+// SelectField is Field for a <select>. options is a slice of value/label pairs.
+templ SelectField(f FieldProps, options []Option) {
+	<fieldset class="fieldset">
+		<label class="fieldset-legend" for={ f.id() }>
+			{ f.Label }
+			if f.Required {
+				<span class="text-error" aria-hidden="true">*</span>
+			}
+		</label>
+		<select
+			id={ f.id() }
+			name={ f.Name }
+			class={ "select w-full", templ.KV("select-error", f.Error != "") }
+			required?={ f.Required }
+			disabled?={ f.Disabled }
+			if f.Validate {
+				up-validate
+			}
+		>
+			if f.Placeholder != "" {
+				<option value="" disabled?={ f.Required } selected?={ f.Value == "" }>{ f.Placeholder }</option>
+			}
+			for _, o := range options {
+				<option value={ o.Value } selected?={ o.Value == f.Value }>{ o.Label }</option>
+			}
+		</select>
+		@fieldNote(f.Hint, f.Error)
+	</fieldset>
+}
+
+templ fieldNote(hint string, err string) {
+	if err != "" {
+		<p class="label text-error">{ err }</p>
+	} else if hint != "" {
+		<p class="label">{ hint }</p>
+	}
+}

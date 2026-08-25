@@ -1,0 +1,111 @@
+package ui
+
+import "net/url"
+import "strconv"
+
+// gap marks an ellipsis slot in the slice returned by Pages.
+const gap = 0
+
+// Pages returns the page numbers to render for current within totalPages:
+// always the first and last page, the current page and its neighbours, and
+// gap (0) wherever pages were skipped. Returns nil when there is nothing to
+// paginate. Pure and deterministic.
+func Pages(current, totalPages int) []int {
+	if totalPages < 2 {
+		return nil
+	}
+	current = min(max(current, 1), totalPages)
+
+	keep := map[int]bool{1: true, totalPages: true}
+	for p := current - 1; p <= current+1; p++ {
+		if p >= 1 && p <= totalPages {
+			keep[p] = true
+		}
+	}
+
+	out := make([]int, 0, len(keep)+2)
+	prev := 0
+	for p := 1; p <= totalPages; p++ {
+		if !keep[p] {
+			continue
+		}
+		if prev != 0 && p != prev+1 {
+			out = append(out, gap)
+		}
+		out = append(out, p)
+		prev = p
+	}
+	return out
+}
+
+// TotalPages is the page count for n items at perPage per page.
+func TotalPages(n, perPage int) int {
+	if perPage < 1 || n <= 0 {
+		return 0
+	}
+	return (n + perPage - 1) / perPage
+}
+
+// PageHref returns the query string for page, preserving other params.
+// Pure: q is never mutated.
+func PageHref(q url.Values, page int) string {
+	n := cloneValues(q)
+	if page <= 1 {
+		n.Del("page")
+	} else {
+		n.Set("page", strconv.Itoa(page))
+	}
+	if len(n) == 0 {
+		return "?"
+	}
+	return "?" + n.Encode()
+}
+
+func ariaCurrent(on bool) string {
+	if on {
+		return "page"
+	}
+	return "false"
+}
+
+// Pagination renders a page selector. target is the CSS selector Unpoly
+// swaps -- pass the DataTable container id (e.g. "#users") so rows and
+// pagination update together.
+templ Pagination(current int, totalItems int, perPage int, q url.Values, target string) {
+	{{ total := TotalPages(totalItems, perPage) }}
+	{{ pages := Pages(current, total) }}
+	if len(pages) > 0 {
+		<nav class="flex items-center justify-between gap-4 flex-wrap" aria-label="Pagination">
+			<p class="text-sm opacity-60">
+				{ strconv.Itoa(totalItems) } résultats · page { strconv.Itoa(current) } sur { strconv.Itoa(total) }
+			</p>
+			<div class="join">
+				@pageLink(q, current-1, target, current > 1, "«")
+				for _, p := range pages {
+					if p == gap {
+						<button class="join-item btn btn-sm btn-disabled">…</button>
+					} else {
+						<a
+							href={ templ.SafeURL(PageHref(q, p)) }
+							up-follow
+							up-target={ target }
+							class={ "join-item btn btn-sm", templ.KV("btn-active", p == current) }
+							aria-current={ ariaCurrent(p == current) }
+						>
+							{ strconv.Itoa(p) }
+						</a>
+					}
+				}
+				@pageLink(q, current+1, target, current < total, "»")
+			</div>
+		</nav>
+	}
+}
+
+templ pageLink(q url.Values, page int, target string, enabled bool, label string) {
+	if enabled {
+		<a href={ templ.SafeURL(PageHref(q, page)) } up-follow up-target={ target } class="join-item btn btn-sm">{ label }</a>
+	} else {
+		<button class="join-item btn btn-sm btn-disabled" aria-hidden="true">{ label }</button>
+	}
+}

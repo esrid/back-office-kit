@@ -1,0 +1,48 @@
+package ui
+
+import "strconv"
+
+type Notification struct {
+	ID    string
+	Title string
+	Body  string
+	Time  string
+	Href  string
+	Read  bool
+}
+
+func unreadNotifications(items []Notification) int {
+	count := 0
+	for _, item := range items {
+		if !item.Read {
+			count++
+		}
+	}
+	return count
+}
+
+// NotificationCenter is a native details dropdown with an unread summary.
+templ NotificationCenter(items []Notification, allHref string, open bool) {
+	<details class="dropdown dropdown-end" open?={ open }>
+		<summary class="btn btn-ghost btn-sm" aria-label={ "Notifications, " + strconv.Itoa(unreadNotifications(items)) + " non lues" }>
+			Notifications
+			if unreadNotifications(items) > 0 {
+				<span class="badge badge-primary badge-sm">{ strconv.Itoa(unreadNotifications(items)) }</span>
+			}
+		</summary>
+		<div class="dropdown-content bg-base-100 rounded-box z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] shadow-xl border border-base-300 overflow-hidden">
+			<div class="px-4 py-3 border-b border-base-300"><h2 class="font-semibold">Notifications</h2></div>
+			<ul class="list max-h-80 overflow-y-auto">
+				for _, item := range items {
+					<li class={ "list-row rounded-none px-4", templ.KV("bg-primary/5", !item.Read) }>
+						<div class={ "status mt-1.5", templ.KV("status-primary", !item.Read), templ.KV("status-neutral opacity-25", item.Read) } aria-hidden="true"></div>
+						<div class="min-w-0"><a href={ templ.SafeURL(item.Href) } up-follow class="font-medium text-sm link link-hover">{ item.Title }</a><p class="text-xs opacity-65 mt-0.5 line-clamp-2">{ item.Body }</p><time class="text-xs opacity-45">{ item.Time }</time></div>
+					</li>
+				}
+			</ul>
+			if allHref != "" {
+				<a href={ templ.SafeURL(allHref) } up-follow class="btn btn-ghost btn-sm w-full rounded-none border-t border-base-300">Tout afficher</a>
+			}
+		</div>
+	</details>
+}

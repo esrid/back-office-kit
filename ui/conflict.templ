@@ -1,0 +1,59 @@
+package ui
+
+type ConflictResolverProps struct {
+	ID               string
+	ConflictID       string
+	Title            string
+	Message          string
+	Resource         string
+	SubmittedVersion string
+	CurrentVersion   string
+	Action           string
+	ReloadHref       string
+	ReturnHref       string
+	AllowMerge       bool
+	AllowOverwrite   bool
+}
+
+// ConflictResolver submits a strategy for one backend-issued conflict. The
+// backend must re-check both versions before applying merge or overwrite.
+templ ConflictResolver(p ConflictResolverProps, diff templ.Component) {
+	<section id={ p.ID } class="card border-2 border-warning bg-base-100" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body p-4 gap-4">
+			<div>
+				<p class="text-xs font-medium text-warning">Conflit de version</p>
+				<h2 id={ p.ID + "-title" } class="font-semibold">{ p.Title }</h2>
+				<p class="text-sm opacity-70 mt-1">{ p.Message }</p>
+			</div>
+			<dl class="grid sm:grid-cols-3 gap-2 text-sm">
+				<div class="rounded-box bg-base-200 p-3"><dt class="text-xs opacity-60">Ressource</dt><dd class="font-medium mt-0.5">{ p.Resource }</dd></div>
+				<div class="rounded-box bg-base-200 p-3"><dt class="text-xs opacity-60">Version envoyée</dt><dd class="font-mono text-xs mt-1">{ p.SubmittedVersion }</dd></div>
+				<div class="rounded-box bg-base-200 p-3"><dt class="text-xs opacity-60">Version actuelle</dt><dd class="font-mono text-xs mt-1">{ p.CurrentVersion }</dd></div>
+			</dl>
+			if diff != nil {
+				@diff
+			}
+			<div class="flex flex-wrap items-center justify-end gap-2">
+				if p.ReturnHref != "" {
+					<a href={ templ.SafeURL(p.ReturnHref) } up-follow class="btn btn-ghost btn-sm">Annuler</a>
+				}
+				if p.ReloadHref != "" {
+					<a href={ templ.SafeURL(p.ReloadHref) } up-follow up-target={ "#" + p.ID } class="btn btn-sm">Charger la version actuelle</a>
+				}
+				if p.Action != "" && (p.AllowMerge || p.AllowOverwrite) {
+					<form method="post" action={ templ.SafeURL(p.Action) } up-submit class="contents">
+						<input type="hidden" name="conflict_id" value={ p.ConflictID }/>
+						<input type="hidden" name="submitted_version" value={ p.SubmittedVersion }/>
+						<input type="hidden" name="current_version" value={ p.CurrentVersion }/>
+						if p.AllowMerge {
+							<button type="submit" name="strategy" value="merge" class="btn btn-primary btn-sm">Fusionner</button>
+						}
+						if p.AllowOverwrite {
+							<button type="submit" name="strategy" value="overwrite" class="btn btn-warning btn-sm">Écraser avec ma version</button>
+						}
+					</form>
+				}
+			</div>
+		</div>
+	</section>
+}

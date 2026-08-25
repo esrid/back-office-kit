@@ -1,0 +1,130 @@
+package main
+
+import "example.com/components/ui"
+import "net/url"
+
+templ demoBulkButtons() {
+	<button class="btn btn-xs">Exporter</button>
+	<button class="btn btn-error btn-xs">Suspendre</button>
+}
+
+templ demoSelectableTable() {
+	@ui.SelectableDataTable("selectable-users", demoColumns()[:3], demoUsers()[:3], url.Values{}, func(u User) string { return u.Email }, ui.TableSelection{
+		Name: "users", Action: "/users/selection", Selected: map[string]bool{"amelie@acme.co": true, "chloe@acme.co": true},
+		BulkSingular: "utilisateur sélectionné", BulkMany: "utilisateurs sélectionnés", BulkActions: demoBulkButtons(),
+	}, nil)
+}
+
+templ demoRowActions() {
+	<div class="flex justify-end pr-16">
+		@ui.RowActionMenu("row-actions-42", "Actions pour Amélie Rousseau", []ui.Action{
+			{Label: "Voir", Href: "/users/42"},
+			{Label: "Modifier", Href: "/users/42/edit"},
+			{Label: "Dupliquer", Href: "/users/42/duplicate", Method: "post"},
+			{Label: "Suspendre", Href: "/users/42/suspend", Method: "post", Confirm: "Suspendre ce compte ?", Tone: "error"},
+		})
+	</div>
+}
+
+templ demoCombobox() {
+	<div class="max-w-md">
+		@ui.ComboboxField(ui.ComboboxProps{
+			Field:        ui.FieldProps{Name: "company", Label: "Entreprise", Value: "Acme", Placeholder: "Rechercher une entreprise", Hint: "Tapez au moins deux caractères."},
+			Options:      []ui.Option{{Value: "Acme SAS", Label: "Paris"}, {Value: "Acme Caraïbes", Label: "Fort-de-France"}, {Value: "Acme Labs", Label: "Lyon"}},
+			SearchTarget: "#f-company-field",
+		})
+	</div>
+}
+
+templ demoSavedViews() {
+	@ui.SavedViewBar([]ui.SavedView{
+		{Label: "Tous", Href: "/users"},
+		{Label: "Actifs", Href: "/users?status=active"},
+		{Label: "Impayés", Href: "/users?billing=overdue"},
+		{Label: "Mon équipe", Href: "/users?team=mine"},
+	}, "/users?status=active", "/views/new")
+}
+
+templ asyncReadyContent() {
+	<div class="rounded-box border border-base-300 p-4"><p class="font-medium">Rapport du 25 août</p><p class="text-sm opacity-60">Les données visibles datent de 09:40.</p></div>
+}
+
+templ demoAsyncStates() {
+	<div class="grid md:grid-cols-2 gap-4">
+		@ui.AsyncState(ui.AsyncStateProps{ID: "loading-report", Status: ui.ResourceLoading})
+		@ui.AsyncState(ui.AsyncStateProps{ID: "failed-report", Status: ui.ResourceError, Title: "Rapport indisponible", Message: "La source n'a pas répondu.", RetryHref: "/reports/retry"})
+		<div class="md:col-span-2">
+			@ui.AsyncState(ui.AsyncStateProps{ID: "stale-report", Status: ui.ResourceStale, Message: "Ces données ont peut-être changé.", RetryHref: "/reports"}) {
+				@asyncReadyContent()
+			}
+		</div>
+	</div>
+}
+
+templ inlineDisplay() {
+	<div><p class="text-xs opacity-55">E-mail</p><p class="text-sm">amelie@acme.co</p></div>
+}
+
+templ demoInlineEdit() {
+	<div class="max-w-xl">
+		@ui.InlineEdit(ui.InlineEditProps{ID: "user-email", Label: "l'e-mail", EditHref: "/users/42/email/edit", CancelHref: "/users/42/email", Action: "/users/42/email", Method: "patch", Editing: true}, inlineDisplay()) {
+			@ui.Field(ui.FieldProps{Name: "inline-email", Label: "E-mail", Type: "email", Value: "amelie@acme.co", Required: true})
+		}
+	</div>
+}
+
+templ demoConfirmAction() {
+	<div class="grid md:grid-cols-[auto_minmax(20rem,28rem)] gap-5 items-start">
+		@ui.ConfirmAction(ui.ConfirmActionProps{Href: "/users/42/delete", Label: "Supprimer le compte", Class: "btn-error"})
+		@ui.ConfirmDialog("Supprimer Amélie Rousseau ?", "Le compte et ses sessions seront définitivement supprimés.", "Supprimer définitivement", "/users/42", "delete", "Amélie Rousseau")
+	</div>
+}
+
+templ demoWizard() {
+	<div class="max-w-2xl mx-auto">
+		@ui.Wizard(ui.WizardProps{
+			Title:   "Configurer l'espace",
+			Steps:   []ui.WizardStep{{Label: "Compte", Href: "/setup/account"}, {Label: "Entreprise"}, {Label: "Équipe"}, {Label: "Terminé"}},
+			Current: 1, Action: "/setup/company", BackHref: "/setup/account",
+		}) {
+			<div class="grid sm:grid-cols-2 gap-3">
+				<label class="fieldset"><span class="fieldset-legend">Entreprise</span><input class="input w-full" value="Acme SAS"/></label>
+				<label class="fieldset"><span class="fieldset-legend">Pays</span><select class="select w-full"><option>France</option></select></label>
+			</div>
+		}
+	</div>
+}
+
+templ repeaterContact(name string, email string) {
+	<div class="grid sm:grid-cols-2 gap-2"><input class="input input-sm w-full" name="contact_name" value={ name } aria-label="Nom"/><input class="input input-sm w-full" name="contact_email" value={ email } aria-label="E-mail"/></div>
+}
+
+templ demoRepeater() {
+	@ui.RepeaterField("billing-contacts", "Contacts de facturation", []ui.RepeaterRow{
+		{ID: "1", RemoveHref: "/contacts/1/remove", Content: repeaterContact("Amélie Rousseau", "amelie@acme.co")},
+		{ID: "2", RemoveHref: "/contacts/2/remove", Content: repeaterContact("Nora Martin", "nora@acme.co")},
+	}, "/contacts/add")
+}
+
+templ retryJob() {
+	<a href="/jobs/42/retry" class="btn btn-sm">Relancer</a>
+}
+
+templ demoJobs() {
+	<div class="grid md:grid-cols-2 gap-4">
+		@ui.JobProgress(ui.JobProgressProps{ID: "export-job", Title: "Export des utilisateurs", Status: ui.JobRunning, Progress: 68, Detail: "6 812 lignes sur 10 000", PollSource: "/jobs/42"})
+		@ui.JobProgress(ui.JobProgressProps{ID: "import-job", Title: "Import CSV", Status: ui.JobError, Progress: 31, Detail: "Ligne 312 : adresse e-mail invalide."}) {
+			@retryJob()
+		}
+	</div>
+}
+
+templ demoNotifications() {
+	<div class="flex justify-end pb-56">
+		@ui.NotificationCenter([]ui.Notification{
+			{ID: "1", Title: "Import terminé", Body: "982 utilisateurs ont été ajoutés.", Time: "il y a 4 min", Href: "/imports/42"},
+			{ID: "2", Title: "Paiement refusé", Body: "La facture FAC-2026-184 nécessite votre attention.", Time: "il y a 18 min", Href: "/invoices/184"},
+			{ID: "3", Title: "Nouveau membre", Body: "Nora Martin a rejoint l'équipe.", Time: "hier", Href: "/users/51", Read: true},
+		}, "/notifications", true)
+	</div>
+}

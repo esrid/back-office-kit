@@ -1,0 +1,90 @@
+package ui
+
+// IndexPage is the list screen: header, filters, then the table. It is the
+// screen a back-office has twenty of, so the order and spacing are decided
+// once here instead of in every handler.
+//
+// children is the DataTable (with its Pagination inside).
+templ IndexPage(p PageProps, filters templ.Component) {
+	<div class="flex flex-col gap-5">
+		@PageHeader(p)
+		if filters != nil {
+			@filters
+		}
+		{ children... }
+	</div>
+}
+
+// DetailPage is one record: main column plus a metadata aside that drops below
+// the content on narrow screens. aside may be nil.
+templ DetailPage(p PageProps, aside templ.Component) {
+	<div class="flex flex-col gap-5">
+		@PageHeader(p)
+		<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem] items-start">
+			<div class="flex flex-col gap-5 min-w-0">
+				{ children... }
+			</div>
+			if aside != nil {
+				<aside class="flex flex-col gap-5">
+					@aside
+				</aside>
+			}
+		</div>
+	</div>
+}
+
+// FormPage is create/edit: a single column of fields with the actions pinned
+// to the bottom of the viewport while the form is long.
+templ FormPage(p PageProps, action string, actions templ.Component) {
+	<div class="flex flex-col gap-5">
+		@PageHeader(p)
+		<form method="post" action={ templ.SafeURL(action) } up-submit class="flex flex-col gap-5 max-w-2xl">
+			{ children... }
+			if actions != nil {
+				<div class="sticky bottom-0 flex items-center gap-2 border-t border-base-300 bg-base-100/95 py-3 backdrop-blur">
+					@actions
+				</div>
+			}
+		</form>
+	</div>
+}
+
+// SettingsPage is the sectioned-preferences screen: a sub-navigation beside
+// the panels of the active section.
+templ SettingsPage(p PageProps, nav []NavItem, current string) {
+	<div class="flex flex-col gap-5">
+		@PageHeader(p)
+		<div class="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] items-start">
+			<ul class="menu menu-sm bg-base-200 rounded-box w-full p-1.5 gap-0.5">
+				for _, n := range nav {
+					<li>
+						<a
+							href={ templ.SafeURL(n.Href) }
+							class={ templ.KV("menu-active", n.Href == current) }
+							up-follow
+						>{ n.Label }</a>
+					</li>
+				}
+			</ul>
+			<div class="flex flex-col gap-5 min-w-0">
+				{ children... }
+			</div>
+		</div>
+	</div>
+}
+
+// SettingsRow pairs an explanation with its control. Reading the label alone
+// should tell you what the switch does.
+templ SettingsRow(label string, description string) {
+	<div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center py-4 first:pt-0 last:pb-0 border-b border-base-300 last:border-b-0">
+		<div>
+			<p class="font-medium text-sm">{ label }</p>
+			if description != "" {
+				<p class="text-sm opacity-60 mt-0.5 max-w-prose">{ description }</p>
+			}
+		</div>
+		<div class="sm:justify-self-end">
+			{ children... }
+		</div>
+	</div>
+}

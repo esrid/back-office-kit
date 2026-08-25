@@ -1,0 +1,27 @@
+package ui
+
+type AgentHandoffProps struct {
+	Title          string
+	Message        string
+	Queue          string
+	ExpectedWait   string
+	Action         string
+	ConversationID string
+}
+
+// AgentHumanHandoff transfers the conversation and its backend audit context
+// to a human queue when automation should stop.
+templ AgentHumanHandoff(p AgentHandoffProps) {
+	<section class="card card-border bg-base-100">
+		<form method="post" action={ templ.SafeURL(p.Action) } up-submit class="card-body p-4 gap-3">
+			<input type="hidden" name="conversation_id" value={ p.ConversationID }/>
+			<div><p class="text-xs opacity-50">Relais humain · { p.Queue }</p><h2 class="font-semibold">{ p.Title }</h2></div>
+			<p class="text-sm opacity-70">{ p.Message }</p>
+			if p.ExpectedWait != "" {
+				<p class="text-xs opacity-50">Délai estimé : { p.ExpectedWait }</p>
+			}
+			<label class="fieldset"><span class="fieldset-legend">Informations complémentaires</span><textarea class="textarea w-full" name="note" placeholder="Ajoutez ce que l’équipe doit savoir"></textarea></label>
+			<div class="card-actions justify-end"><button type="submit" class="btn btn-primary btn-sm">Transférer à un humain</button></div>
+		</form>
+	</section>
+}

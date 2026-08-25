@@ -1,0 +1,116 @@
+package ui
+
+type AccessDecision string
+
+const (
+	AccessAllowed     AccessDecision = "allowed"
+	AccessDenied      AccessDecision = "denied"
+	AccessStepUp      AccessDecision = "step_up"
+	AccessUnavailable AccessDecision = "unavailable"
+)
+
+func accessDecisionLabel(decision AccessDecision) string {
+	switch decision {
+	case AccessAllowed:
+		return "Accès autorisé"
+	case AccessStepUp:
+		return "Vérification requise"
+	case AccessUnavailable:
+		return "Accès indisponible"
+	default:
+		return "Accès refusé"
+	}
+}
+
+func accessDecisionTone(decision AccessDecision) string {
+	switch decision {
+	case AccessAllowed:
+		return "success"
+	case AccessStepUp:
+		return "warning"
+	case AccessUnavailable:
+		return "info"
+	default:
+		return "error"
+	}
+}
+
+type AccessNoticeProps struct {
+	ID          string
+	DecisionID  string
+	Decision    AccessDecision
+	Title       string
+	Message     string
+	Reason      string
+	Policy      string
+	ActionHref  string
+	ActionLabel string
+	ActionLayer string
+	HelpHref    string
+}
+
+func accessNoticeTitle(p AccessNoticeProps) string {
+	if p.Title != "" {
+		return p.Title
+	}
+	return accessDecisionLabel(p.Decision)
+}
+
+func accessActionLabel(label string) string {
+	if label == "" {
+		return "Continuer"
+	}
+	return label
+}
+
+// AccessNotice explains an authorization decision already made by the
+// backend. It is never a client-side permission boundary.
+templ AccessNotice(p AccessNoticeProps) {
+	<section
+		id={ p.ID }
+		class={ "alert items-start", toneOf(accessDecisionTone(p.Decision)).Alert }
+		aria-labelledby={ p.ID + "-title" }
+		data-access-decision={ p.Decision }
+		data-decision-id={ p.DecisionID }
+	>
+		<div class="flex w-full flex-col gap-3 sm:flex-row sm:items-start">
+			<div class="flex-1 min-w-0">
+				<div class="flex flex-wrap items-center gap-2">
+					<h2 id={ p.ID + "-title" } class="font-semibold">{ accessNoticeTitle(p) }</h2>
+					<span class={ "badge badge-sm", toneOf(accessDecisionTone(p.Decision)).Badge }>{ accessDecisionLabel(p.Decision) }</span>
+				</div>
+				if p.Message != "" {
+					<p class="text-sm mt-1">{ p.Message }</p>
+				}
+				if p.Reason != "" || p.Policy != "" || p.DecisionID != "" {
+					<dl class="grid sm:grid-cols-3 gap-x-4 gap-y-2 mt-3 text-xs">
+						if p.Reason != "" {
+							<div><dt class="font-medium">Motif</dt><dd class="opacity-80">{ p.Reason }</dd></div>
+						}
+						if p.Policy != "" {
+							<div><dt class="font-medium">Politique</dt><dd class="opacity-80">{ p.Policy }</dd></div>
+						}
+						if p.DecisionID != "" {
+							<div><dt class="font-medium">Référence</dt><dd class="font-mono opacity-80">{ p.DecisionID }</dd></div>
+						}
+					</dl>
+				}
+			</div>
+			<div class="flex flex-wrap justify-end gap-2 sm:self-center">
+				if p.HelpHref != "" {
+					<a href={ templ.SafeURL(p.HelpHref) } class="btn btn-ghost btn-sm">En savoir plus</a>
+				}
+				if p.ActionHref != "" {
+					<a
+						href={ templ.SafeURL(p.ActionHref) }
+						up-follow
+						if p.ActionLayer != "" {
+							up-layer={ p.ActionLayer }
+						}
+						class="btn btn-sm"
+					>{ accessActionLabel(p.ActionLabel) }</a>
+				}
+			</div>
+		</div>
+	</section>
+}

@@ -1,0 +1,4 @@
+node_modules/
+bin/
+admin.db
+*_templ.go

@@ -1,0 +1,134 @@
+package ui
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/url"
+)
+
+// Column describes one DataTable column. Cell renders the value for a row.
+// Sort is the sort key sent to the server; empty means the column is not
+// sortable.
+type Column[T any] struct {
+	Header string
+	Sort   string
+	Class  string
+	Cell   func(T) templ.Component
+}
+
+// SortHref returns the query string that sorts by key, toggling the direction
+// when key is already the active sort, and resetting pagination.
+// Pure: q is never mutated.
+func SortHref(q url.Values, key string) string {
+	n := cloneValues(q)
+	if n.Get("sort") == key && n.Get("dir") == "asc" {
+		n.Set("dir", "desc")
+	} else {
+		n.Set("dir", "asc")
+	}
+	n.Set("sort", key)
+	n.Del("page")
+	return "?" + n.Encode()
+}
+
+// SortDir returns "asc", "desc" or "" (not sorted) for key.
+func SortDir(q url.Values, key string) string {
+	if key == "" || q.Get("sort") != key {
+		return ""
+	}
+	if q.Get("dir") == "desc" {
+		return "desc"
+	}
+	return "asc"
+}
+
+// Text builds a Column whose cell is the fmt.Sprint of get(row). Both type
+// parameters are inferred from get, so callers write:
+//
+//	ui.Text("Email", "email", func(u User) string { return u.Email })
+func Text[T any, V any](header, sortKey string, get func(T) V) Column[T] {
+	return Column[T]{
+		Header: header,
+		Sort:   sortKey,
+		Cell: func(row T) templ.Component {
+			return textCell(fmt.Sprint(get(row)))
+		},
+	}
+}
+
+func textCell(s string) templ.Component {
+	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
+		_, err := io.WriteString(w, templ.EscapeString(s))
+		return err
+	})
+}
+
+// DataTable renders a sortable table inside a container with the given id.
+// Sort links target that container, so anything passed as children (typically
+// @Pagination) is swapped together with the rows.
+//
+// empty may be nil, in which case a default message is shown.
+templ DataTable[T any](id string, cols []Column[T], rows []T, q url.Values, empty templ.Component) {
+	<div id={ id } class="flex flex-col gap-3">
+		if len(rows) == 0 {
+			if empty != nil {
+				@empty
+			} else {
+				@EmptyState("Aucun résultat", "Aucune ligne ne correspond à ces filtres.", nil)
+			}
+		} else {
+			<div class="overflow-x-auto rounded-box border border-base-300">
+				<table class="table table-sm table-zebra table-pin-rows">
+					<thead>
+						<tr>
+							for _, c := range cols {
+								<th class={ c.Class }>
+									if c.Sort != "" {
+										<a
+											href={ templ.SafeURL(SortHref(q, c.Sort)) }
+											up-follow
+											up-target={ "#" + id }
+											class="inline-flex items-center gap-1 hover:text-base-content"
+										>
+											{ c.Header }
+											@iconSort(SortDir(q, c.Sort))
+										</a>
+									} else {
+										{ c.Header }
+									}
+								</th>
+							}
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range rows {
+							<tr>
+								for _, c := range cols {
+									<td class={ c.Class }>
+										@c.Cell(r)
+									</td>
+								}
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			{ children... }
+		}
+	</div>
+}
+
+// EmptyState fills the space where rows would be. action is optional.
+templ EmptyState(title string, message string, action templ.Component) {
+	<div class="rounded-box border border-dashed border-base-300 py-12 px-6 flex flex-col items-center text-center gap-2">
+		<svg xmlns="http://www.w3.org/2000/svg" class="size-10 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-4l-2 3h-4l-2-3H4"></path></svg>
+		<p class="font-medium">{ title }</p>
+		<p class="text-sm opacity-60 max-w-sm">{ message }</p>
+		if action != nil {
+			<div class="mt-2">
+				@action
+			</div>
+		}
+	</div>
+}

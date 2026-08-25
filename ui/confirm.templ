@@ -1,0 +1,28 @@
+package ui
+
+type ConfirmActionProps struct {
+	Href  string
+	Label string
+	Class string
+}
+
+templ ConfirmAction(p ConfirmActionProps) {
+	<a href={ templ.SafeURL(p.Href) } up-layer="new modal" class={ "btn btn-sm", p.Class }>{ p.Label }</a>
+}
+
+// ConfirmDialog is rendered by the modal response. typedName is validated by
+// the server and gives high-impact actions intentional friction.
+templ ConfirmDialog(title string, message string, confirmLabel string, action string, method string, typedName string) {
+	<section class="card bg-base-100 w-full max-w-md" aria-label={ title }>
+		<form method="post" action={ templ.SafeURL(action) } up-submit class="card-body gap-4">
+			if method != "" {
+				<input type="hidden" name="_method" value={ method }/>
+			}
+			<div><h1 class="card-title">{ title }</h1><p class="text-sm opacity-70 mt-1">{ message }</p></div>
+			if typedName != "" {
+				<label class="fieldset"><span class="fieldset-legend">Saisissez <strong>{ typedName }</strong> pour confirmer</span><input class="input w-full" name="confirmation" autocomplete="off" required/></label>
+			}
+			<div class="card-actions justify-end"><button type="button" class="btn btn-ghost btn-sm" up-dismiss>Annuler</button><button type="submit" class="btn btn-error btn-sm">{ confirmLabel }</button></div>
+		</form>
+	</section>
+}

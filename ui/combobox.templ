@@ -1,0 +1,51 @@
+package ui
+
+import "strconv"
+
+type ComboboxProps struct {
+	Field        FieldProps
+	Options      []Option
+	SearchTarget string
+	Delay        int
+}
+
+func comboDelay(delay int) string {
+	if delay <= 0 {
+		return "250"
+	}
+	return strconv.Itoa(delay)
+}
+
+// ComboboxField uses a native datalist as its zero-JS baseline. SearchTarget
+// optionally asks the server to re-render suggestions while typing.
+templ ComboboxField(p ComboboxProps) {
+	<fieldset class="fieldset" id={ p.Field.id() + "-field" }>
+		<label class="fieldset-legend" for={ p.Field.id() }>{ p.Field.Label }</label>
+		<input
+			id={ p.Field.id() }
+			name={ p.Field.Name }
+			type="text"
+			value={ p.Field.Value }
+			placeholder={ p.Field.Placeholder }
+			list={ p.Field.id() + "-options" }
+			class={ "input w-full", templ.KV("input-error", p.Field.Error != "") }
+			required?={ p.Field.Required }
+			disabled?={ p.Field.Disabled }
+			autofocus?={ p.Field.Autofocus }
+			if p.Field.Error != "" {
+				aria-invalid="true"
+			}
+			if p.SearchTarget != "" {
+				up-validate={ p.SearchTarget }
+				up-watch-event="input"
+				up-watch-delay={ comboDelay(p.Delay) }
+			}
+		/>
+		<datalist id={ p.Field.id() + "-options" }>
+			for _, option := range p.Options {
+				<option value={ option.Value }>{ option.Label }</option>
+			}
+		</datalist>
+		@fieldNote(p.Field.Hint, p.Field.Error)
+	</fieldset>
+}

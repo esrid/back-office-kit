@@ -1,0 +1,32 @@
+package ui
+
+type DetailTab struct {
+	Label string
+	Href  string
+	Meta  string
+}
+
+// DetailTabs keeps the active detail section in the URL and remains usable
+// without JavaScript. target optionally limits the Unpoly swap.
+templ DetailTabs(tabs []DetailTab, current string, target string) {
+	<nav class="overflow-x-auto" aria-label="Sections du détail">
+		<div class="tabs tabs-border min-w-max">
+			for _, tab := range tabs {
+				<a
+					href={ templ.SafeURL(tab.Href) }
+					class={ "tab gap-2", templ.KV("tab-active", tab.Href == current) }
+					aria-current={ ariaCurrent(tab.Href == current) }
+					up-follow
+					if target != "" {
+						up-target={ target }
+					}
+				>
+					{ tab.Label }
+					if tab.Meta != "" {
+						<span class="badge badge-sm badge-ghost">{ tab.Meta }</span>
+					}
+				</a>
+			}
+		</div>
+	</nav>
+}
