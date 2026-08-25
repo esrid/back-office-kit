@@ -81,7 +81,7 @@ templ PermissionMatrix(p PermissionMatrixProps) {
 									<th scope="col" class="text-center min-w-28">
 										<span class="block">{ column.Label }</span>
 										if column.Description != "" {
-											<span class="block text-xs font-normal opacity-60">{ column.Description }</span>
+											<span class="block text-xs font-normal text-base-content opacity-90">{ column.Description }</span>
 										}
 									</th>
 								}
@@ -117,7 +117,9 @@ templ PermissionMatrix(p PermissionMatrixProps) {
 												if cell.Inherited {
 													<span class="block text-xs opacity-60">
 														Héritée
-														if cell.Origin != "" { de { cell.Origin } }
+														if cell.Origin != "" {
+															<span>de { cell.Origin }</span>
+														}
 													</span>
 												}
 											}

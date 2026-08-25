@@ -1,0 +1,117 @@
+package ui
+
+type StepUpMethod struct {
+	Value        string
+	Label        string
+	Description  string
+	InputLabel   string
+	InputType    string
+	Autocomplete string
+	Placeholder  string
+}
+
+type StepUpAuthProps struct {
+	ID               string
+	Title            string
+	Message          string
+	Action           string
+	ChallengeID      string
+	ChallengeVersion string
+	ExpiresAt        string
+	ExpiresDatetime  string
+	Method           StepUpMethod
+	Alternatives     []StepUpMethod
+	CancelHref       string
+	Error            string
+}
+
+func stepUpTitle(title string) string {
+	if title == "" {
+		return "Confirmez votre identité"
+	}
+	return title
+}
+
+func stepUpInputType(inputType string) string {
+	if inputType == "password" {
+		return "password"
+	}
+	return "text"
+}
+
+func stepUpInputLabel(method StepUpMethod) string {
+	if method.InputLabel != "" {
+		return method.InputLabel
+	}
+	return "Code de vérification"
+}
+
+func stepUpInputMode(inputType string) string {
+	if inputType == "password" {
+		return "text"
+	}
+	return "numeric"
+}
+
+// StepUpAuthCard renders a backend-issued, expiring challenge. Completing it
+// proves a fresh factor; it does not by itself authorize the pending action.
+templ StepUpAuthCard(p StepUpAuthProps) {
+	<section id={ p.ID } class="card card-border bg-base-100 max-w-xl" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body p-5 gap-4">
+			<header>
+				<div class="flex flex-wrap items-center gap-2">
+					<h2 id={ p.ID + "-title" } class="card-title text-lg">{ stepUpTitle(p.Title) }</h2>
+					<span class="badge badge-warning badge-sm">Action sensible</span>
+				</div>
+				if p.Message != "" {
+					<p class="mt-2 text-sm opacity-70">{ p.Message }</p>
+				}
+				if p.ExpiresAt != "" {
+					<p class="mt-1 text-xs opacity-60">Cette vérification expire <time datetime={ p.ExpiresDatetime }>{ p.ExpiresAt }</time>.</p>
+				}
+			</header>
+			if p.Error != "" {
+				<div class="alert alert-error py-2 text-sm" role="alert">{ p.Error }</div>
+			}
+			<form method="post" action={ templ.SafeURL(p.Action) } up-submit class="flex flex-col gap-4">
+				<input type="hidden" name="challenge_id" value={ p.ChallengeID }/>
+				<input type="hidden" name="challenge_version" value={ p.ChallengeVersion }/>
+				<input type="hidden" name="method" value={ p.Method.Value }/>
+				<div class="rounded-box border border-base-300 p-3">
+					<p class="font-medium text-sm">{ p.Method.Label }</p>
+					if p.Method.Description != "" {
+						<p class="mt-1 text-sm opacity-70">{ p.Method.Description }</p>
+					}
+				</div>
+				<label class="form-control">
+					<span class="label-text mb-1 font-medium">{ stepUpInputLabel(p.Method) }</span>
+					<input
+						type={ stepUpInputType(p.Method.InputType) }
+						name="verification"
+						class="input input-bordered w-full"
+						placeholder={ p.Method.Placeholder }
+						autocomplete={ p.Method.Autocomplete }
+						inputmode={ stepUpInputMode(p.Method.InputType) }
+						required
+					/>
+				</label>
+				<div class="flex flex-wrap justify-end gap-2">
+					if p.CancelHref != "" {
+						<a href={ templ.SafeURL(p.CancelHref) } up-follow class="btn btn-ghost btn-sm">Annuler</a>
+					}
+					<button type="submit" class="btn btn-primary btn-sm">Vérifier et continuer</button>
+				</div>
+			</form>
+			if len(p.Alternatives) > 0 {
+				<nav aria-label="Autres méthodes" class="border-t border-base-300 pt-3">
+					<p class="text-xs font-medium opacity-60">Autres méthodes</p>
+					<ul class="mt-1 flex flex-wrap gap-2">
+						for _, method := range p.Alternatives {
+							<li><a href={ templ.SafeURL("?method=" + method.Value) } up-follow up-target={ "#" + p.ID } class="link link-hover text-sm">{ method.Label }</a></li>
+						}
+					</ul>
+				</nav>
+			}
+		</div>
+	</section>
+}

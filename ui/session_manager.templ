@@ -13,13 +13,13 @@ type SecuritySession struct {
 }
 
 type SessionManagerProps struct {
-	ID          string
-	Title       string
-	Description string
-	Action      string
-	SubjectID   string
-	Version     string
-	Sessions    []SecuritySession
+	ID           string
+	Title        string
+	Description  string
+	Action       string
+	SubjectID    string
+	Version      string
+	Sessions     []SecuritySession
 	CanRevokeAll bool
 }
 
@@ -38,7 +38,9 @@ templ SessionManager(p SessionManagerProps) {
 			<header class="flex flex-wrap items-start justify-between gap-3">
 				<div>
 					<h2 id={ p.ID + "-title" } class="font-semibold">{ sessionManagerTitle(p.Title) }</h2>
-					if p.Description != "" { <p class="mt-1 text-sm opacity-70">{ p.Description }</p> }
+					if p.Description != "" {
+						<p class="mt-1 text-sm opacity-70">{ p.Description }</p>
+					}
 				</div>
 				if p.CanRevokeAll {
 					<button type="submit" form={ p.ID + "-form" } name="intent" value="revoke_others" class="btn btn-error btn-outline btn-sm">Révoquer les autres sessions</button>
@@ -57,13 +59,23 @@ templ SessionManager(p SessionManagerProps) {
 									<div class="min-w-0">
 										<div class="flex flex-wrap items-center gap-2">
 											<strong class="text-sm">{ session.Device }</strong>
-											if session.Current { <span class="badge badge-success badge-sm">Session actuelle</span> }
+											if session.Current {
+												<span class="badge badge-success badge-sm">Session actuelle</span>
+											}
 										</div>
-										if session.Browser != "" { <p class="text-sm opacity-70">{ session.Browser }</p> }
+										if session.Browser != "" {
+											<p class="text-sm opacity-70">{ session.Browser }</p>
+										}
 										<dl class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-60">
-											if session.Location != "" { <div><dt class="sr-only">Localisation</dt><dd>{ session.Location }</dd></div> }
-											if session.IP != "" { <div><dt class="sr-only">Adresse IP</dt><dd class="font-mono">{ session.IP }</dd></div> }
-											if session.LastSeen != "" { <div><dt class="sr-only">Dernière activité</dt><dd><time datetime={ session.LastSeenDatetime }>{ session.LastSeen }</time></dd></div> }
+											if session.Location != "" {
+												<div><dt class="sr-only">Localisation</dt><dd>{ session.Location }</dd></div>
+											}
+											if session.IP != "" {
+												<div><dt class="sr-only">Adresse IP</dt><dd class="font-mono">{ session.IP }</dd></div>
+											}
+											if session.LastSeen != "" {
+												<div><dt class="sr-only">Dernière activité</dt><dd><time datetime={ session.LastSeenDatetime }>{ session.LastSeen }</time></dd></div>
+											}
 										</dl>
 									</div>
 									if session.Revocable && !session.Current {

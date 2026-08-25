@@ -1,0 +1,149 @@
+package ui
+
+import "strconv"
+
+type SecurityEventSeverity string
+
+const (
+	SecurityEventInfo     SecurityEventSeverity = "info"
+	SecurityEventWarning  SecurityEventSeverity = "warning"
+	SecurityEventCritical SecurityEventSeverity = "critical"
+)
+
+func securityEventLabel(severity SecurityEventSeverity) string {
+	switch severity {
+	case SecurityEventCritical:
+		return "Critique"
+	case SecurityEventWarning:
+		return "À examiner"
+	default:
+		return "Information"
+	}
+}
+
+func securityEventTone(severity SecurityEventSeverity) string {
+	switch severity {
+	case SecurityEventCritical:
+		return "error"
+	case SecurityEventWarning:
+		return "warning"
+	default:
+		return "info"
+	}
+}
+
+type SecurityEvent struct {
+	ID         string
+	Title      string
+	Summary    string
+	Severity   SecurityEventSeverity
+	Actor      string
+	Target     string
+	IP         string
+	OccurredAt string
+	Datetime   string
+	RequestID  string
+	Href       string
+}
+
+type SecurityEventFeedProps struct {
+	ID          string
+	Title       string
+	Description string
+	Events      []SecurityEvent
+	Filters     templ.Component
+	Busy        bool
+	PollSource  string
+	Target      string
+}
+
+func securityEventFeedTitle(title string) string {
+	if title == "" {
+		return "Événements de sécurité"
+	}
+	return title
+}
+
+// SecurityEventFeed displays a backend-filtered audit projection. It should
+// receive only fields the current operator is allowed to inspect.
+templ SecurityEventFeed(p SecurityEventFeedProps) {
+	<section
+		id={ p.ID }
+		class="card card-border bg-base-100"
+		aria-labelledby={ p.ID + "-title" }
+		aria-busy={ strconv.FormatBool(p.Busy) }
+		if p.Busy && p.PollSource != "" {
+			up-poll
+			up-interval="5000"
+			up-source={ p.PollSource }
+		}
+	>
+		<div class="card-body p-4 gap-4">
+			<header class="flex flex-wrap items-start justify-between gap-3">
+				<div>
+					<h2 id={ p.ID + "-title" } class="font-semibold">{ securityEventFeedTitle(p.Title) }</h2>
+					if p.Description != "" {
+						<p class="mt-1 text-sm opacity-70">{ p.Description }</p>
+					}
+				</div>
+				if p.Busy {
+					<span class="inline-flex items-center gap-2 text-xs opacity-70"><span class="loading loading-dots loading-xs"></span>Actualisation</span>
+				}
+			</header>
+			if p.Filters != nil {
+				@p.Filters
+			}
+			if len(p.Events) == 0 {
+				@EmptyState("Aucun événement", "Aucun événement de sécurité ne correspond aux filtres.", nil)
+			} else {
+				<ol class="relative ml-2 border-s border-base-300">
+					for _, event := range p.Events {
+						<li class="relative ms-5 pb-5 last:pb-0" data-event-id={ event.ID }>
+							<span class={ "status absolute -start-[1.56rem] top-1.5", toneOf(securityEventTone(event.Severity)).Dot } aria-hidden="true"></span>
+							<article>
+								<div class="flex flex-wrap items-start justify-between gap-2">
+									<div>
+										<div class="flex flex-wrap items-center gap-2">
+											<h3 class="font-medium text-sm">{ event.Title }</h3>
+											<span class={ "badge badge-sm", toneOf(securityEventTone(event.Severity)).Badge }>{ securityEventLabel(event.Severity) }</span>
+										</div>
+										if event.Summary != "" {
+											<p class="mt-1 text-sm opacity-70">{ event.Summary }</p>
+										}
+									</div>
+									if event.OccurredAt != "" {
+										<time class="text-xs whitespace-nowrap opacity-60" datetime={ event.Datetime }>{ event.OccurredAt }</time>
+									}
+								</div>
+								<dl class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-60">
+									if event.Actor != "" {
+										<div><dt class="sr-only">Acteur</dt><dd>{ event.Actor }</dd></div>
+									}
+									if event.Target != "" {
+										<div><dt class="sr-only">Cible</dt><dd>{ event.Target }</dd></div>
+									}
+									if event.IP != "" {
+										<div><dt class="sr-only">Adresse IP</dt><dd class="font-mono">{ event.IP }</dd></div>
+									}
+									if event.RequestID != "" {
+										<div><dt class="sr-only">Requête</dt><dd class="font-mono">{ event.RequestID }</dd></div>
+									}
+								</dl>
+								if event.Href != "" {
+									<a
+										href={ templ.SafeURL(event.Href) }
+										up-follow
+										if p.Target != "" {
+											up-target={ p.Target }
+										}
+										class="link link-hover mt-2 inline-block text-xs"
+									>Voir l’événement</a>
+								}
+							</article>
+						</li>
+					}
+				</ol>
+			}
+		</div>
+	</section>
+}

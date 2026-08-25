@@ -15,6 +15,7 @@ import (
 // Section is one entry of the gallery.
 type Section struct {
 	N          int
+	Signature  string
 	Group      string
 	ID         string
 	Title      string
@@ -269,11 +270,14 @@ func sections() []Section {
 	secs = append(secs, tier5Sections()...)
 	secs = append(secs, tier6Sections()...)
 	secs = append(secs, tier7Sections()...)
+	secs = append(secs, tier8Sections()...)
 	// Numbering is assigned here, not written into each literal: the sections
 	// are a build order, so adding or removing one must not leave a gap or a
 	// duplicate numeral behind.
+	sigs := signatures("ui")
 	for i := range secs {
 		secs[i].N = i + 1
+		secs[i].Signature = signatureFor(sigs, secs[i].Title)
 	}
 	return secs
 }

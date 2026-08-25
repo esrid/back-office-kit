@@ -8,7 +8,19 @@ Composants de back-office en [templ](https://templ.guide) + [daisyUI 5](https://
 
 ## Documentation
 
-La galerie rend chaque composant pour de vrai, avec son code d'appel. Elle se
+Deux entrées, complémentaires.
+
+**`go doc` pendant que vous codez.** C'est la référence d'API : signatures,
+champs de chaque struct de props, et le pourquoi de chacun.
+
+```sh
+go doc github.com/esrid/back-office-kit/ui              # les 84 composants
+go doc github.com/esrid/back-office-kit/ui FieldProps   # tous les champs, commentés
+go doc github.com/esrid/back-office-kit/ui DataTable
+```
+
+**La galerie pour choisir.** Chaque composant rendu pour de vrai, sa signature
+exacte extraite du source à la génération, et son code d'appel. Elle se
 construit depuis le dépôt et s'ouvre en local :
 
 ```sh
@@ -86,14 +98,20 @@ Le handler lit `r.URL.Query()`, filtre, trie, pagine, et rend. Le kit ne garde
 aucun état : `ui.SortHref`, `ui.PageHref` et `ui.ResetHref` construisent les
 URL, votre code les applique aux données.
 
-## Construire la galerie
+## Construire
 
 ```sh
-templ generate
-npx tailwindcss -i assets/app.css -o dist/app.css --minify
-go run ./cmd/gallery     # écrit dist/gallery.html
-go test ./...
+make generate   # templ generate + détache le commentaire de version des générés
+make css        # tailwind + daisyui -> dist/app.css
+make gallery    # écrit dist/gallery.html
+make dev        # lance example/ sur :8080
+make test
 ```
+
+`make generate` fait plus que `templ generate` : templ colle
+`// templ: version: X` au `package ui` de chaque fichier généré, et Go prend
+alors ces 63 commentaires pour la documentation du paquet — `go doc ./ui`
+devient illisible. La cible insère une ligne vide qui les détache.
 
 ## Côté serveur
 

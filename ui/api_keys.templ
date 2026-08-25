@@ -70,9 +70,13 @@ templ APIKeyManager(p APIKeyManagerProps) {
 			<header class="flex flex-wrap items-start justify-between gap-3">
 				<div>
 					<h2 id={ p.ID + "-title" } class="font-semibold">{ apiKeyManagerTitle(p.Title) }</h2>
-					if p.Description != "" { <p class="mt-1 text-sm opacity-70">{ p.Description }</p> }
+					if p.Description != "" {
+						<p class="mt-1 text-sm opacity-70">{ p.Description }</p>
+					}
 				</div>
-				if p.CreateHref != "" { <a href={ templ.SafeURL(p.CreateHref) } up-follow class="btn btn-primary btn-sm">Créer une clé</a> }
+				if p.CreateHref != "" {
+					<a href={ templ.SafeURL(p.CreateHref) } up-follow class="btn btn-primary btn-sm">Créer une clé</a>
+				}
 			</header>
 			if len(p.Keys) == 0 {
 				@EmptyState("Aucune clé d’API", "Créez une clé avec la portée minimale nécessaire.", nil)
@@ -91,13 +95,21 @@ templ APIKeyManager(p APIKeyManagerProps) {
 										<code class="mt-1 block text-xs">{ key.Prefix }••••••••</code>
 										if len(key.Scopes) > 0 {
 											<ul class="mt-2 flex flex-wrap gap-1" aria-label="Portées">
-												for _, scope := range key.Scopes { <li class="badge badge-sm badge-outline font-mono">{ scope }</li> }
+												for _, scope := range key.Scopes {
+													<li class="badge badge-sm badge-outline font-mono">{ scope }</li>
+												}
 											</ul>
 										}
 										<p class="mt-2 text-xs opacity-60">
-											if key.CreatedAt != "" { créée <time datetime={ key.CreatedDatetime }>{ key.CreatedAt }</time> }
-											if key.LastUsed != "" { · utilisée <time datetime={ key.LastUsedDatetime }>{ key.LastUsed }</time> }
-											if key.ExpiresAt != "" { · expire <time datetime={ key.ExpiresDatetime }>{ key.ExpiresAt }</time> }
+											if key.CreatedAt != "" {
+												<span>créée <time datetime={ key.CreatedDatetime }>{ key.CreatedAt }</time></span>
+											}
+											if key.LastUsed != "" {
+												<span>· utilisée <time datetime={ key.LastUsedDatetime }>{ key.LastUsed }</time></span>
+											}
+											if key.ExpiresAt != "" {
+												<span>· expire <time datetime={ key.ExpiresDatetime }>{ key.ExpiresAt }</time></span>
+											}
 										</p>
 									</div>
 									if key.Revocable && key.Status != APIKeyRevoked {
@@ -133,13 +145,17 @@ templ SecretReveal(p SecretRevealProps) {
 				<p class="mt-1 text-sm">Elle ne sera plus affichée après avoir quitté cet écran.</p>
 				if p.Name != "" || p.CreatedAt != "" {
 					<p class="mt-2 text-xs opacity-80">
-						if p.Name != "" { { p.Name } }
-						if p.CreatedAt != "" { · créée <time datetime={ p.CreatedDatetime }>{ p.CreatedAt }</time> }
+						if p.Name != "" {
+							<span>{ p.Name }</span>
+						}
+						if p.CreatedAt != "" {
+							<span>· créée <time datetime={ p.CreatedDatetime }>{ p.CreatedAt }</time></span>
+						}
 					</p>
 				}
 				<label class="form-control mt-3">
 					<span class="label-text mb-1 font-medium">Secret</span>
-					<input class="input input-bordered w-full font-mono text-sm select-all" readonly value={ p.Secret } aria-describedby={ p.ID + "-hint" }/>
+					<input class="input input-bordered bg-base-100 text-base-content w-full font-mono text-sm select-all" readonly value={ p.Secret } aria-describedby={ p.ID + "-hint" }/>
 				</label>
 				<p id={ p.ID + "-hint" } class="mt-1 text-xs opacity-80">Sélectionnez puis copiez la valeur dans votre gestionnaire de secrets.</p>
 				if p.AcknowledgeAction != "" {

@@ -138,6 +138,17 @@ body {
 .gal-stage--app .drawer-content { min-height: 22rem; }
 .gal-stage--app .drawer-side { height: 22rem; }
 
+.gal-sig {
+  margin-top: .85rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: .72rem; line-height: 1.6;
+  color: var(--g-mute);
+  overflow-x: auto;
+  white-space: pre;
+  padding-bottom: .2rem;
+}
+.gal-sig code { color: inherit; }
+
 /* --- code + note --- */
 .gal-code {
   margin-top: .85rem;
