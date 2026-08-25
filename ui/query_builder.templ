@@ -1,0 +1,150 @@
+package ui
+
+type QueryJoin string
+
+const (
+	QueryAll QueryJoin = "all"
+	QueryAny QueryJoin = "any"
+)
+
+type QueryRule struct {
+	ID           string
+	Field        string
+	Operator     string
+	Value        string
+	ValueType    string
+	ValueOptions []Option
+}
+
+type QueryGroup struct {
+	ID            string
+	Join          QueryJoin
+	Rules         []QueryRule
+	Groups        []QueryGroup
+	AllowAddRule  bool
+	AllowAddGroup bool
+	AllowRemove   bool
+}
+
+type QueryBuilderProps struct {
+	ID         string
+	Title      string
+	Action     string
+	Target     string
+	Fields     []Option
+	Operators  []Option
+	Root       QueryGroup
+	AllowReset bool
+}
+
+func queryGroupName(groupID string, field string) string {
+	return "groups[" + groupID + "][" + field + "]"
+}
+
+func queryRuleName(groupID string, ruleID string, field string) string {
+	return "groups[" + groupID + "][rules][" + ruleID + "][" + field + "]"
+}
+
+func queryValueType(valueType string) string {
+	if valueType == "" {
+		return "text"
+	}
+	return valueType
+}
+
+// QueryBuilder serializes nested groups into one GET form. Add/remove intents
+// only reshape the server-rendered draft; applying produces a shareable query.
+templ QueryBuilder(p QueryBuilderProps) {
+	<section id={ p.ID } class="card card-border bg-base-100" aria-labelledby={ p.ID + "-title" }>
+		<form
+			method="get"
+			action={ templ.SafeURL(p.Action) }
+			up-submit
+			if p.Target != "" {
+				up-target={ p.Target }
+			}
+			class="card-body p-4 gap-4"
+		>
+			<h2 id={ p.ID + "-title" } class="font-semibold">{ p.Title }</h2>
+			@queryBuilderGroup(p.Root, p.Fields, p.Operators, true)
+			<div class="card-actions justify-end">
+				if p.AllowReset {
+					<button type="submit" name="intent" value="reset" class="btn btn-ghost btn-sm" formnovalidate>Réinitialiser</button>
+				}
+				<button type="submit" name="intent" value="apply" class="btn btn-primary btn-sm">Appliquer les règles</button>
+			</div>
+		</form>
+	</section>
+}
+
+templ queryBuilderGroup(group QueryGroup, fields []Option, operators []Option, root bool) {
+	<fieldset class={ "rounded-box border border-base-300 p-3 flex flex-col gap-3", templ.KV("bg-base-200/50", !root) } data-query-group={ group.ID }>
+		<legend class="px-1 text-sm font-medium">
+			if group.Join == QueryAny {
+				Au moins une condition
+			} else {
+				Toutes les conditions
+			}
+		</legend>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<label class="flex items-center gap-2 text-sm">
+				<span>Correspond à</span>
+				<select class="select select-sm" name={ queryGroupName(group.ID, "join") } aria-label="Relation entre les règles">
+					<option value="all" selected?={ group.Join != QueryAny }>toutes les règles</option>
+					<option value="any" selected?={ group.Join == QueryAny }>au moins une règle</option>
+				</select>
+			</label>
+			if group.AllowRemove && !root {
+				<button type="submit" name="intent" value={ "remove_group:" + group.ID } class="btn btn-ghost btn-xs text-error" formnovalidate>Supprimer le groupe</button>
+			}
+		</div>
+		<ul class="flex flex-col gap-2">
+			for _, rule := range group.Rules {
+				<li class="grid md:grid-cols-[minmax(9rem,1fr)_minmax(9rem,1fr)_minmax(10rem,1.2fr)_auto] gap-2 items-end rounded-box bg-base-100 p-2" data-query-rule={ rule.ID }>
+					<label class="fieldset">
+						<span class="fieldset-legend">Champ</span>
+						<select class="select select-sm w-full" name={ queryRuleName(group.ID, rule.ID, "field") }>
+							for _, field := range fields {
+								<option value={ field.Value } selected?={ field.Value == rule.Field }>{ field.Label }</option>
+							}
+						</select>
+					</label>
+					<label class="fieldset">
+						<span class="fieldset-legend">Opérateur</span>
+						<select class="select select-sm w-full" name={ queryRuleName(group.ID, rule.ID, "operator") }>
+							for _, operator := range operators {
+								<option value={ operator.Value } selected?={ operator.Value == rule.Operator }>{ operator.Label }</option>
+							}
+						</select>
+					</label>
+					<label class="fieldset">
+						<span class="fieldset-legend">Valeur</span>
+						if len(rule.ValueOptions) > 0 {
+							<select class="select select-sm w-full" name={ queryRuleName(group.ID, rule.ID, "value") }>
+								for _, value := range rule.ValueOptions {
+									<option value={ value.Value } selected?={ value.Value == rule.Value }>{ value.Label }</option>
+								}
+							</select>
+						} else {
+							<input class="input input-sm w-full" type={ queryValueType(rule.ValueType) } name={ queryRuleName(group.ID, rule.ID, "value") } value={ rule.Value }/>
+						}
+					</label>
+					<button type="submit" name="intent" value={ "remove_rule:" + rule.ID } class="btn btn-ghost btn-sm text-error" formnovalidate>Supprimer</button>
+				</li>
+			}
+		</ul>
+		for _, child := range group.Groups {
+			@queryBuilderGroup(child, fields, operators, false)
+		}
+		if group.AllowAddRule || group.AllowAddGroup {
+			<div class="flex flex-wrap gap-2">
+				if group.AllowAddRule {
+					<button type="submit" name="intent" value={ "add_rule:" + group.ID } class="btn btn-ghost btn-xs" formnovalidate>+ Règle</button>
+				}
+				if group.AllowAddGroup {
+					<button type="submit" name="intent" value={ "add_group:" + group.ID } class="btn btn-ghost btn-xs" formnovalidate>+ Groupe</button>
+				}
+			</div>
+		}
+	</fieldset>
+}

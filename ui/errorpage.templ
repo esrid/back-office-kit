@@ -1,0 +1,50 @@
+package ui
+
+// ErrorPageProps is the screen guaranteed to be seen and usually never drawn.
+type ErrorPageProps struct {
+	Code      string // "404", "403", "500", "503"
+	Title     string
+	Message   string
+	HomeHref  string
+	RetryHref string
+	RequestID string // so the operator can quote something precise to support
+}
+
+func errorTone(code string) string {
+	switch code {
+	case "403", "401":
+		return "warning"
+	case "500", "502", "503":
+		return "error"
+	default:
+		return "neutral"
+	}
+}
+
+// ErrorPage renders outside the Shell: whatever failed may be the Shell.
+templ ErrorPage(p ErrorPageProps) {
+	<div class="min-h-screen grid place-items-center bg-base-200 p-4">
+		<div class="w-full max-w-md flex flex-col items-center text-center gap-4">
+			<span class={ "badge badge-lg font-mono", toneOf(errorTone(p.Code)).Badge }>{ p.Code }</span>
+			<div>
+				<h1 class="text-2xl font-semibold tracking-tight text-balance">{ p.Title }</h1>
+				if p.Message != "" {
+					<p class="text-sm opacity-70 mt-2 max-w-prose">{ p.Message }</p>
+				}
+			</div>
+			<div class="flex flex-wrap items-center justify-center gap-2">
+				if p.RetryHref != "" {
+					<a href={ templ.SafeURL(p.RetryHref) } up-follow class="btn btn-primary btn-sm">Réessayer</a>
+				}
+				if p.HomeHref != "" {
+					<a href={ templ.SafeURL(p.HomeHref) } up-follow class="btn btn-ghost btn-sm">Retour au tableau de bord</a>
+				}
+			</div>
+			if p.RequestID != "" {
+				<p class="text-xs opacity-50">
+					Référence à communiquer au support : <code class="font-mono">{ p.RequestID }</code>
+				</p>
+			}
+		</div>
+	</div>
+}

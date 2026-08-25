@@ -1,0 +1,134 @@
+package ui
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+// SparklineProps draws one series of numbers as an inline trend.
+//
+// A single series, so there is no legend: whatever names the number beside it
+// names the line. The stroke is neutral ink by default -- the adjacent figure
+// already carries good/bad, and status colours are reserved for status.
+type SparklineProps struct {
+	Values []float64
+	Label  string // what the line measures; becomes the accessible name
+	Suffix string // unit appended to the values in the tooltip
+	Width  int
+	Height int
+	Tone   string // optional: "success", "warning", "error", "info"
+}
+
+func (p SparklineProps) width() int {
+	if p.Width > 0 {
+		return p.Width
+	}
+	return 120
+}
+
+func (p SparklineProps) height() int {
+	if p.Height > 0 {
+		return p.Height
+	}
+	return 28
+}
+
+const sparkPad = 3 // room for the 2px stroke and the endpoint dot
+
+// sparkPoints maps values onto the drawing box. Y is inverted so a rising
+// series rises on screen. A flat series -- including a single value -- sits on
+// the middle line rather than dividing by a zero range.
+func sparkPoints(values []float64, w, h float64) [][2]float64 {
+	if len(values) == 0 {
+		return nil
+	}
+	top, bottom := float64(sparkPad), h-sparkPad
+	if len(values) == 1 {
+		return [][2]float64{{w / 2, (top + bottom) / 2}}
+	}
+
+	lo, hi := values[0], values[0]
+	for _, v := range values[1:] {
+		lo, hi = min(lo, v), max(hi, v)
+	}
+
+	pts := make([][2]float64, len(values))
+	step := (w - 2*sparkPad) / float64(len(values)-1)
+	for i, v := range values {
+		x := sparkPad + step*float64(i)
+		y := (top + bottom) / 2
+		if hi != lo {
+			y = bottom - (v-lo)/(hi-lo)*(bottom-top)
+		}
+		pts[i] = [2]float64{x, y}
+	}
+	return pts
+}
+
+func sparkPolyline(pts [][2]float64) string {
+	var b strings.Builder
+	for i, p := range pts {
+		if i > 0 {
+			b.WriteByte(' ')
+		}
+		fmt.Fprintf(&b, "%.2f,%.2f", p[0], p[1])
+	}
+	return b.String()
+}
+
+// sparkArea closes the polyline down to the baseline for a faint fill.
+func sparkArea(pts [][2]float64, h float64) string {
+	if len(pts) < 2 {
+		return ""
+	}
+	return fmt.Sprintf("%.2f,%.2f %s %.2f,%.2f",
+		pts[0][0], h, sparkPolyline(pts), pts[len(pts)-1][0], h)
+}
+
+func sparkSummary(p SparklineProps) string {
+	if len(p.Values) == 0 {
+		return p.Label
+	}
+	lo, hi := p.Values[0], p.Values[0]
+	for _, v := range p.Values[1:] {
+		lo, hi = min(lo, v), max(hi, v)
+	}
+	num := func(f float64) string { return strconv.FormatFloat(f, 'f', -1, 64) + p.Suffix }
+	return fmt.Sprintf("%s — de %s à %s, actuellement %s",
+		p.Label, num(lo), num(hi), num(p.Values[len(p.Values)-1]))
+}
+
+// Sparkline renders server-side SVG: no chart library, no client state.
+// The <title> is the zero-JavaScript stand-in for a hover tooltip -- browsers
+// show it natively, and screen readers read the aria-label.
+templ Sparkline(p SparklineProps) {
+	{{ w, h := float64(p.width()), float64(p.height()) }}
+	{{ pts := sparkPoints(p.Values, w, h) }}
+	if len(pts) > 0 {
+		<svg
+			viewBox={ fmt.Sprintf("0 0 %g %g", w, h) }
+			width={ strconv.Itoa(p.width()) }
+			height={ strconv.Itoa(p.height()) }
+			class={ "overflow-visible", toneOf(p.Tone).Text }
+			role="img"
+			aria-label={ sparkSummary(p) }
+			preserveAspectRatio="none"
+		>
+			<title>{ sparkSummary(p) }</title>
+			if len(pts) > 1 {
+				<polygon points={ sparkArea(pts, h) } fill="currentColor" opacity="0.12"></polygon>
+				<polyline
+					points={ sparkPolyline(pts) }
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					vector-effect="non-scaling-stroke"
+				></polyline>
+			}
+			<circle cx={ fmt.Sprintf("%.2f", pts[len(pts)-1][0]) } cy={ fmt.Sprintf("%.2f", pts[len(pts)-1][1]) } r="3" fill="currentColor"></circle>
+		</svg>
+	}
+}

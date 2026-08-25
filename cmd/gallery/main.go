@@ -267,6 +267,8 @@ func sections() []Section {
 	secs = append(secs, tier3Sections()...)
 	secs = append(secs, tier4Sections()...)
 	secs = append(secs, tier5Sections()...)
+	secs = append(secs, tier6Sections()...)
+	secs = append(secs, tier7Sections()...)
 	// Numbering is assigned here, not written into each literal: the sections
 	// are a build order, so adding or removing one must not leave a gap or a
 	// duplicate numeral behind.

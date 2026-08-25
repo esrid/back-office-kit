@@ -1,0 +1,65 @@
+package main
+
+import "example.com/components/ui"
+
+templ demoCommandPalette() {
+	<div class="grid lg:grid-cols-[auto_minmax(0,42rem)] gap-4 items-start">
+		@ui.CommandPaletteTrigger(ui.CommandPaletteTriggerProps{Href: "/commands", Label: "Ouvrir les commandes", Shortcut: "⌘ K"})
+		@ui.CommandPalette(ui.CommandPaletteProps{
+			ID: "demo-command-palette", Title: "Aller à…", SearchAction: "/commands",
+			Query: "acme", Groups: demoPaletteGroups(),
+		})
+	</div>
+}
+
+templ demoQueryBuilder() {
+	@ui.QueryBuilder(ui.QueryBuilderProps{
+		ID: "demo-query-builder", Title: "Comptes prioritaires", Action: "/accounts", Target: "#accounts",
+		Fields: demoQueryFields(), Operators: demoQueryOperators(), Root: demoQueryRoot(), AllowReset: true,
+	})
+}
+
+templ demoColumnManager() {
+	<div class="max-w-lg mx-auto">
+		@ui.ColumnManager(ui.ColumnManagerProps{
+			ID: "demo-column-manager", Title: "Personnaliser le tableau", Action: "/views/accounts/columns", Target: "#accounts",
+			Columns: demoManagedColumns(), Density: ui.DensityComfortable, AllowReset: true,
+		})
+	</div>
+}
+
+templ demoMasterDetailNav() {
+	@ui.MasterDetailNav("Comptes en retard", demoMasterDetailItems(), "acme-caribbean", "#demo-accounts-detail")
+}
+
+templ demoMasterDetailActions() {
+	<a href="/accounts/acme-caribbean/edit" up-follow class="btn btn-sm">Modifier</a>
+}
+
+templ demoMasterDetailRecord() {
+	<div class="flex flex-col gap-3">
+		@ui.Panel("Acme Caraïbes", demoMasterDetailActions()) {
+			<div class="flex flex-wrap items-center gap-2 mb-3">@ui.StatusBadge("Overdue")
+<span class="text-sm opacity-70">12 factures nécessitent une intervention</span></div>
+			@ui.DetailList([]ui.Option{
+				{Label: "Responsable", Value: "Amélie Rousseau"},
+				{Label: "Montant dû", Value: "18 420 €"},
+				{Label: "Plus ancienne échéance", Value: "19 juillet 2026"},
+				{Label: "Dernier contact", Value: "hier à 15:42"},
+			})
+		}
+		@ui.AgentSuggestionSet("Actions proposées", []ui.AgentSuggestion{
+			{Label: "Préparer une relance", Description: "Créer un brouillon d’e-mail sans l’envoyer.", Href: "/accounts/acme-caribbean/reminder", Risk: ui.AgentRiskRead},
+			{Label: "Préparer une suspension", Description: "Construire un plan soumis à approbation.", Href: "/accounts/acme-caribbean/suspension", Risk: ui.AgentRiskWrite},
+		}, "#demo-accounts-detail")
+	</div>
+}
+
+templ demoMasterDetail() {
+	@ui.MasterDetail(ui.MasterDetailProps{
+		ID: "demo-accounts", Title: "Traitement des comptes en retard",
+		Subtitle: "La sélection et les filtres restent dans l’URL.", List: demoMasterDetailNav(), DetailLabel: "Détail du compte sélectionné",
+	}) {
+		@demoMasterDetailRecord()
+	}
+}

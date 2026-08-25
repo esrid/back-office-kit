@@ -1,0 +1,35 @@
+package ui
+
+// ImpersonationProps describes an operator acting as somebody else.
+type ImpersonationProps struct {
+	Subject string // the account being acted as
+	Actor   string // the real operator, named so the audit trail is visible
+	Since   string // how long the session has lasted
+	Action  string // POST endpoint that ends it
+}
+
+// ImpersonationBanner must be impossible to miss and must carry its own exit.
+//
+// The danger is not entering impersonation, it is forgetting you are in it. So
+// the banner is sticky, full width, and uses the warning surface rather than a
+// discreet chip.
+templ ImpersonationBanner(p ImpersonationProps) {
+	if p.Subject != "" {
+		<div class="sticky top-0 z-40 bg-warning text-warning-content" role="alert">
+			<div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
+				<p class="text-sm font-medium">
+					Vous agissez en tant que <strong>{ p.Subject }</strong>
+					if p.Actor != "" {
+						<span class="font-normal opacity-80">· connecté comme { p.Actor }</span>
+					}
+					if p.Since != "" {
+						<span class="font-normal opacity-80">· depuis { p.Since }</span>
+					}
+				</p>
+				<form method="post" action={ templ.SafeURL(p.Action) } up-submit>
+					<button type="submit" class="btn btn-sm">Reprendre mon identité</button>
+				</form>
+			</div>
+		</div>
+	}
+}

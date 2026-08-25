@@ -38,6 +38,12 @@ func TestStateChangingActionsAreNotLinks(t *testing.T) {
 			[]RepeaterRow{{ID: "r1", RemoveHref: destructive}}, "/add"),
 		"RepeaterField.AddHref":   RepeaterField("rows", "Lignes", nil, destructive),
 		"FormActions.destroyHref": FormActions("Enregistrer", destructive),
+		"UndoSnackbar.Action": UndoSnackbar(UndoProps{
+			Message: "12 comptes suspendus", Action: destructive, ReceiptID: "r1",
+		}),
+		"ImpersonationBanner.Action": ImpersonationBanner(ImpersonationProps{
+			Subject: "Amélie", Action: destructive,
+		}),
 		"RowActionMenu.Method": RowActionMenu("m1", "Actions", []Action{
 			{Label: "Supprimer", Href: destructive, Method: "delete", Confirm: "Sûr ?"},
 		}),

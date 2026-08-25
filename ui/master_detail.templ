@@ -1,0 +1,75 @@
+package ui
+
+type MasterDetailItem struct {
+	ID          string
+	Title       string
+	Description string
+	Meta        string
+	Href        string
+}
+
+type MasterDetailProps struct {
+	ID          string
+	Title       string
+	Subtitle    string
+	List        templ.Component
+	DetailLabel string
+}
+
+// MasterDetail composes a selection list and a server-rendered detail region.
+// The panes stack on narrow screens and do not require a client-side splitter.
+templ MasterDetail(p MasterDetailProps) {
+	<section id={ p.ID } class="flex flex-col gap-4" aria-labelledby={ p.ID + "-title" }>
+		<header>
+			<h1 id={ p.ID + "-title" } class="font-semibold">{ p.Title }</h1>
+			if p.Subtitle != "" {
+				<p class="text-sm opacity-70 mt-1">{ p.Subtitle }</p>
+			}
+		</header>
+		<div class="grid lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] gap-4 items-start">
+			<aside id={ p.ID + "-list" } class="min-w-0 lg:sticky lg:top-4">
+				if p.List != nil {
+					@p.List
+				}
+			</aside>
+			<section id={ p.ID + "-detail" } class="min-w-0" aria-label={ p.DetailLabel }>
+				{ children... }
+			</section>
+		</div>
+	</section>
+}
+
+// MasterDetailNav keeps selection in ordinary URLs and swaps only the detail
+// region when Unpoly is available.
+templ MasterDetailNav(title string, items []MasterDetailItem, current string, target string) {
+	<nav class="card card-border bg-base-100" aria-label={ title }>
+		<div class="card-body p-2">
+			<h2 class="px-2 pt-1 text-sm font-medium">{ title }</h2>
+			<ul class="menu w-full p-0">
+				for _, item := range items {
+					<li>
+						<a
+							href={ templ.SafeURL(item.Href) }
+							up-follow
+							if target != "" {
+								up-target={ target }
+							}
+							class={ templ.KV("menu-active", item.ID == current) }
+							aria-current={ ariaCurrent(item.ID == current) }
+						>
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-sm font-medium">{ item.Title }</span>
+								if item.Description != "" {
+									<span class="block truncate text-xs opacity-70 mt-0.5">{ item.Description }</span>
+								}
+							</span>
+							if item.Meta != "" {
+								<span class="badge badge-ghost badge-sm">{ item.Meta }</span>
+							}
+						</a>
+					</li>
+				}
+			</ul>
+		</div>
+	</nav>
+}

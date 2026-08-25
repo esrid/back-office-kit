@@ -2,7 +2,7 @@
 
 Composants de back-office en [templ](https://templ.guide) + [daisyUI 5](https://daisyui.com) + [Unpoly 3](https://unpoly.com).
 
-47 composants, des primitives (tableau triable, pagination, champs) jusqu'aux
+57 composants, des primitives (tableau triable, pagination, champs) jusqu'aux
 écrans complets (liste, fiche, formulaire, réglages), aux interfaces agentiques
 (plan d'action, carte d'approbation, journal d'exécution) et à la gouvernance.
 

@@ -1,0 +1,120 @@
+package main
+
+import (
+	"example.com/components/ui"
+	"time"
+)
+
+var demoNow = time.Date(2026, 8, 25, 19, 13, 0, 0, time.UTC)
+
+func demoParis() *time.Location {
+	loc, err := time.LoadLocation("Europe/Paris")
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}
+
+templ demoTimestamp() {
+	<div class="flex flex-col gap-2 text-sm">
+		for _, row := range []struct {
+			Label  string
+			At     time.Time
+			Abs    bool
+		}{
+			{"il y a quelques secondes", demoNow.Add(-20 * time.Second), false},
+			{"il y a une heure", demoNow.Add(-72 * time.Minute), false},
+			{"la semaine dernière", demoNow.Add(-7 * 24 * time.Hour), false},
+			{"planifié", demoNow.Add(50 * time.Hour), false},
+			{"forme absolue", demoNow.Add(-72 * time.Minute), true},
+		} {
+			<div class="flex items-baseline gap-3">
+				<span class="opacity-50 w-44 shrink-0">{ row.Label }</span>
+				@ui.Timestamp(ui.TimestampProps{At: row.At, Now: demoNow, Location: demoParis(), Absolute: row.Abs})
+			</div>
+		}
+	</div>
+}
+
+templ demoSparkline() {
+	<div class="overflow-x-auto rounded-box border border-base-300">
+		<table class="table table-sm">
+			<thead><tr><th>Métrique</th><th>Valeur</th><th>30 jours</th><th class="text-right">Écart</th></tr></thead>
+			<tbody>
+				<tr>
+					<td class="font-medium">Revenu mensuel</td>
+					<td class="tabular-nums">48 920 €</td>
+					<td>@ui.Sparkline(ui.SparklineProps{Values: []float64{31, 33, 32, 36, 35, 39, 42, 41, 45, 44, 47, 49}, Label: "Revenu mensuel", Suffix: " k€"})
+</td>
+					<td class="text-right tabular-nums text-success">+8,4 %</td>
+				</tr>
+				<tr>
+					<td class="font-medium">Impayés</td>
+					<td class="tabular-nums">17</td>
+					<td>@ui.Sparkline(ui.SparklineProps{Values: []float64{4, 5, 4, 7, 9, 8, 11, 13, 12, 15, 16, 17}, Label: "Impayés", Tone: "error"})
+</td>
+					<td class="text-right tabular-nums text-error">+3</td>
+				</tr>
+				<tr>
+					<td class="font-medium">Latence p95</td>
+					<td class="tabular-nums">180 ms</td>
+					<td>@ui.Sparkline(ui.SparklineProps{Values: []float64{180, 180, 180, 180, 180, 180}, Label: "Latence p95", Suffix: " ms"})
+</td>
+					<td class="text-right tabular-nums opacity-50">stable</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+}
+
+templ demoUndoSnackbar() {
+	<div class="relative h-24">
+		<div class="absolute inset-x-0 bottom-0 flex justify-center">
+			<div class="alert bg-base-content text-base-100 shadow-lg flex-row items-center gap-4 w-auto" role="status">
+				<span class="text-sm">12 comptes suspendus</span>
+				<button class="btn btn-sm">Annuler</button>
+				<span class="text-xs opacity-60 whitespace-nowrap">encore 24 secondes</span>
+			</div>
+		</div>
+	</div>
+}
+
+templ demoImpersonation() {
+	@ui.ImpersonationBanner(ui.ImpersonationProps{
+		Subject: "Amélie Rousseau",
+		Actor:   "nora@acme.co",
+		Since:   "8 minutes",
+		Action:  "/impersonation/stop",
+	})
+}
+
+templ demoErrorPage() {
+	@ui.ErrorPage(ui.ErrorPageProps{
+		Code:      "500",
+		Title:     "Le rapport n'a pas pu être généré",
+		Message:   "La source de facturation n'a pas répondu. Les données affichées ailleurs ne sont pas affectées.",
+		RetryHref: "/reports/monthly",
+		HomeHref:  "/",
+		RequestID: "req_8f31c2a4",
+	})
+}
+
+templ demoImportMapper() {
+	@ui.ImportMapper(ui.ImportMapperProps{
+		ID:       "import-users",
+		Action:   "/imports/42/run",
+		RowCount: 1284,
+		Fields: []ui.ImportField{
+			{Name: "email", Label: "E-mail", Required: true},
+			{Name: "name", Label: "Nom complet", Required: true},
+			{Name: "role", Label: "Rôle"},
+			{Name: "seats", Label: "Sièges"},
+		},
+		Columns: []ui.ImportColumn{
+			{Source: "Email address", Samples: []string{"amelie@acme.co", "bruno@acme.co"}, Target: "email"},
+			{Source: "Full name", Samples: []string{"Amélie Rousseau", "Bruno Keller"}, Target: "name"},
+			{Source: "Département", Samples: []string{"Opérations", "Finance"}, Target: ""},
+			{Source: "Licences", Samples: []string{"12", "3"}, Target: "seats"},
+		},
+	})
+}

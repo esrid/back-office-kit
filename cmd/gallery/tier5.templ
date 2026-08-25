@@ -22,7 +22,7 @@ templ demoChangeDiff() {
 	@ui.ChangeDiff(ui.ChangeDiffProps{
 		ID: "demo-change-diff", Title: "Modifications proposées",
 		Summary: "4 champs seront modifiés sur le compte Acme Caraïbes.",
-		Items: demoChangeItems(),
+		Items:   demoChangeItems(),
 	})
 }
 
@@ -40,7 +40,7 @@ templ demoConflictDiff() {
 templ demoConflictResolver() {
 	@ui.ConflictResolver(ui.ConflictResolverProps{
 		ID: "demo-conflict", ConflictID: "conflict_9f2",
-		Title: "Ce compte a changé depuis l’ouverture du formulaire",
+		Title:   "Ce compte a changé depuis l’ouverture du formulaire",
 		Message: "Comparez les versions avant de choisir une résolution.", Resource: "Compte Acme Caraïbes",
 		SubmittedVersion: "12", CurrentVersion: "14", Action: "/conflicts/9f2/resolve",
 		ReloadHref: "/conflicts/9f2", ReturnHref: "/accounts/acme-caribbean",

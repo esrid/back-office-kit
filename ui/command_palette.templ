@@ -1,0 +1,150 @@
+package ui
+
+type PaletteCommand struct {
+	ID          string
+	Label       string
+	Description string
+	Href        string
+	Method      string
+	Confirm     string
+	Shortcut    string
+	Tone        string
+	Disabled    bool
+}
+
+type PaletteGroup struct {
+	Label    string
+	Commands []PaletteCommand
+}
+
+type CommandPaletteProps struct {
+	ID           string
+	Title        string
+	SearchAction string
+	Query        string
+	Placeholder  string
+	Groups       []PaletteGroup
+}
+
+type CommandPaletteTriggerProps struct {
+	Href     string
+	Label    string
+	Shortcut string
+}
+
+func commandPaletteTitle(title string) string {
+	if title == "" {
+		return "Commandes"
+	}
+	return title
+}
+
+func commandPalettePlaceholder(placeholder string) string {
+	if placeholder == "" {
+		return "Rechercher une page ou une action…"
+	}
+	return placeholder
+}
+
+func paletteHasMethodCommands(groups []PaletteGroup) bool {
+	for _, group := range groups {
+		for _, command := range group.Commands {
+			if !command.Disabled && command.Method != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func paletteCommandClass(command PaletteCommand) string {
+	base := "flex w-full items-center justify-between gap-3 rounded-box px-3 py-2 text-left hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-primary"
+	if command.Tone == "error" {
+		return base + " text-error"
+	}
+	return base
+}
+
+// CommandPaletteTrigger opens the ordinary server-rendered palette response.
+templ CommandPaletteTrigger(p CommandPaletteTriggerProps) {
+	<a href={ templ.SafeURL(p.Href) } up-layer="new modal" class="btn btn-sm">
+		<span>{ p.Label }</span>
+		if p.Shortcut != "" {
+			<kbd class="kbd kbd-sm">{ p.Shortcut }</kbd>
+		}
+	</a>
+}
+
+// CommandPalette is a server-filtered search and navigation surface. It uses
+// native search, links and buttons instead of claiming incomplete combobox or
+// listbox keyboard behavior.
+templ CommandPalette(p CommandPaletteProps) {
+	<section class="card bg-base-100 w-full max-w-2xl" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body p-4 gap-3">
+			<header class="flex items-center justify-between gap-3">
+				<h1 id={ p.ID + "-title" } class="font-semibold">{ commandPaletteTitle(p.Title) }</h1>
+				<button type="button" class="btn btn-ghost btn-sm btn-square" up-dismiss aria-label="Fermer">×</button>
+			</header>
+			<form method="get" action={ templ.SafeURL(p.SearchAction) } up-submit up-target={ "#" + p.ID + "-results" } role="search">
+				<label class="input w-full">
+					@iconSearch()
+					<input id={ p.ID + "-search" } type="search" name="q" value={ p.Query } placeholder={ commandPalettePlaceholder(p.Placeholder) } aria-label="Rechercher une commande" autofocus up-watch-delay="200"/>
+				</label>
+			</form>
+			<div id={ p.ID + "-results" } class="max-h-[60vh] overflow-y-auto" tabindex="0" role="region" aria-label="Résultats des commandes">
+				if len(p.Groups) == 0 {
+					@EmptyState("Aucune commande", "Aucune page ou action ne correspond à cette recherche.", nil)
+				} else {
+					for _, group := range p.Groups {
+						<section class="py-2" aria-label={ group.Label }>
+							<h2 class="px-3 text-xs font-medium opacity-60 mb-1">{ group.Label }</h2>
+							<ul>
+								for _, command := range group.Commands {
+									<li>
+										if command.Disabled {
+											<button type="button" class={ paletteCommandClass(command) } disabled>
+												@paletteCommandContent(command)
+											</button>
+										} else if command.Method == "" {
+											<a href={ templ.SafeURL(command.Href) } up-follow class={ paletteCommandClass(command) }>
+												@paletteCommandContent(command)
+											</a>
+										} else {
+											<button
+												type="submit"
+												form={ p.ID + "-actions" }
+												formaction={ templ.SafeURL(command.Href) }
+												up-method={ command.Method }
+												if command.Confirm != "" {
+													up-confirm={ command.Confirm }
+												}
+												class={ paletteCommandClass(command) }
+											>
+												@paletteCommandContent(command)
+											</button>
+										}
+									</li>
+								}
+							</ul>
+						</section>
+					}
+				}
+			</div>
+			if paletteHasMethodCommands(p.Groups) {
+				<form id={ p.ID + "-actions" } method="post" hidden up-submit></form>
+			}
+		</div>
+	</section>
+}
+
+templ paletteCommandContent(command PaletteCommand) {
+	<span class="min-w-0">
+		<span class="block text-sm font-medium">{ command.Label }</span>
+		if command.Description != "" {
+			<span class="block text-xs text-base-content opacity-80 mt-0.5">{ command.Description }</span>
+		}
+	</span>
+	if command.Shortcut != "" {
+		<kbd class="kbd kbd-sm shrink-0">{ command.Shortcut }</kbd>
+	}
+}

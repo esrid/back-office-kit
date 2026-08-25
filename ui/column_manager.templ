@@ -1,0 +1,92 @@
+package ui
+
+type TableDensity string
+
+const (
+	DensityCompact     TableDensity = "compact"
+	DensityComfortable TableDensity = "comfortable"
+	DensitySpacious    TableDensity = "spacious"
+)
+
+type ManagedColumn struct {
+	Key     string
+	Label   string
+	Visible bool
+	Locked  bool
+}
+
+type ColumnManagerProps struct {
+	ID         string
+	Title      string
+	Action     string
+	Target     string
+	Columns    []ManagedColumn
+	Density    TableDensity
+	AllowReset bool
+}
+
+func columnManagerTitle(title string) string {
+	if title == "" {
+		return "Colonnes"
+	}
+	return title
+}
+
+// ColumnManager persists visibility, order and density through one backend
+// form. Reordering uses explicit buttons, so drag-and-drop is never required.
+templ ColumnManager(p ColumnManagerProps) {
+	<section class="card bg-base-100 w-full max-w-lg" aria-labelledby={ p.ID + "-title" }>
+		<form
+			method="post"
+			action={ templ.SafeURL(p.Action) }
+			up-submit
+			if p.Target != "" {
+				up-target={ p.Target }
+			}
+			class="card-body p-4 gap-4"
+		>
+			<header class="flex items-center justify-between gap-3">
+				<div><h1 id={ p.ID + "-title" } class="font-semibold">{ columnManagerTitle(p.Title) }</h1><p class="text-sm opacity-70">Choisissez les données et leur ordre d’affichage.</p></div>
+				<button type="button" class="btn btn-ghost btn-sm btn-square" up-dismiss aria-label="Fermer">×</button>
+			</header>
+			<fieldset>
+				<legend class="text-sm font-medium mb-2">Colonnes visibles</legend>
+				<ol class="flex flex-col gap-1">
+					for i, column := range p.Columns {
+						<li class="flex items-center gap-2 rounded-box border border-base-300 p-2" data-column-key={ column.Key }>
+							<input type="hidden" name="column_order" value={ column.Key }/>
+							if column.Locked && column.Visible {
+								<input type="hidden" name="columns" value={ column.Key }/>
+							}
+							<label class="flex min-w-0 flex-1 items-center gap-2">
+								<input class="checkbox checkbox-sm" type="checkbox" name="columns" value={ column.Key } checked?={ column.Visible } disabled?={ column.Locked }/>
+								<span class="truncate text-sm">{ column.Label }</span>
+								if column.Locked {
+									<span class="badge badge-ghost badge-sm">Obligatoire</span>
+								}
+							</label>
+							<div class="join">
+								<button type="submit" name="intent" value={ "move_up:" + column.Key } class="join-item btn btn-ghost btn-xs" disabled?={ i == 0 } formnovalidate aria-label={ "Monter " + column.Label }>↑</button>
+								<button type="submit" name="intent" value={ "move_down:" + column.Key } class="join-item btn btn-ghost btn-xs" disabled?={ i == len(p.Columns)-1 } formnovalidate aria-label={ "Descendre " + column.Label }>↓</button>
+							</div>
+						</li>
+					}
+				</ol>
+			</fieldset>
+			<fieldset>
+				<legend class="text-sm font-medium mb-2">Densité</legend>
+				<div class="flex flex-wrap gap-3">
+					for _, option := range []struct{ Value TableDensity; Label string }{{DensityCompact, "Compacte"}, {DensityComfortable, "Confortable"}, {DensitySpacious, "Aérée"}} {
+						<label class="label cursor-pointer gap-2"><input class="radio radio-sm" type="radio" name="density" value={ string(option.Value) } checked?={ p.Density == option.Value }/><span>{ option.Label }</span></label>
+					}
+				</div>
+			</fieldset>
+			<div class="card-actions justify-end">
+				if p.AllowReset {
+					<button type="submit" name="intent" value="reset" class="btn btn-ghost btn-sm" formnovalidate>Valeurs par défaut</button>
+				}
+				<button type="submit" name="intent" value="save" class="btn btn-primary btn-sm">Enregistrer</button>
+			</div>
+		</form>
+	</section>
+}

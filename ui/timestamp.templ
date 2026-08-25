@@ -1,0 +1,101 @@
+package ui
+
+import (
+	"fmt"
+	"math"
+	"time"
+)
+
+// TimestampProps renders one moment in time.
+//
+// Now is a parameter, never time.Now(): a component that reads the clock
+// renders differently on every call and cannot be tested. The handler passes
+// its own request time.
+//
+// Location is the operator's zone. A back-office that prints UTC while the
+// operator reasons in local time produces confident wrong decisions, so the
+// zone abbreviation is always shown, never implied.
+type TimestampProps struct {
+	At       time.Time
+	Now      time.Time
+	Location *time.Location
+	Absolute bool // show the full date instead of the relative phrase
+}
+
+func (p TimestampProps) location() *time.Location {
+	if p.Location != nil {
+		return p.Location
+	}
+	return time.UTC
+}
+
+var relativeSteps = []struct {
+	Below time.Duration
+	Unit  time.Duration
+	One   string
+	Many  string
+}{
+	{45 * time.Second, 0, "", ""},
+	{90 * time.Second, time.Minute, "minute", "minutes"},
+	{45 * time.Minute, time.Minute, "minute", "minutes"},
+	{90 * time.Minute, time.Hour, "heure", "heures"},
+	{22 * time.Hour, time.Hour, "heure", "heures"},
+	{36 * time.Hour, 24 * time.Hour, "jour", "jours"},
+	{26 * 24 * time.Hour, 24 * time.Hour, "jour", "jours"},
+	{45 * 24 * time.Hour, 30 * 24 * time.Hour, "mois", "mois"},
+	{320 * 24 * time.Hour, 30 * 24 * time.Hour, "mois", "mois"},
+}
+
+// relativeTime phrases at relative to now. Pure: same inputs, same output.
+func relativeTime(at, now time.Time) string {
+	d := at.Sub(now)
+	past := d < 0
+	if past {
+		d = -d
+	}
+
+	unit, one, many := 365*24*time.Hour, "an", "ans"
+	for _, step := range relativeSteps {
+		if d < step.Below {
+			if step.Unit == 0 {
+				return "à l'instant"
+			}
+			unit, one, many = step.Unit, step.One, step.Many
+			break
+		}
+	}
+
+	n := int(math.Round(float64(d) / float64(unit)))
+	if n < 1 {
+		n = 1
+	}
+	if past {
+		return fmt.Sprintf("il y a %d %s", n, plural(n, one, many))
+	}
+	return fmt.Sprintf("dans %d %s", n, plural(n, one, many))
+}
+
+var frenchMonths = [...]string{
+	"janvier", "février", "mars", "avril", "mai", "juin",
+	"juillet", "août", "septembre", "octobre", "novembre", "décembre",
+}
+
+// absoluteTime spells the date out, with the zone abbreviation attached.
+func absoluteTime(at time.Time, loc *time.Location) string {
+	t := at.In(loc)
+	zone, _ := t.Zone()
+	return fmt.Sprintf("%d %s %d à %02d:%02d %s",
+		t.Day(), frenchMonths[t.Month()-1], t.Year(), t.Hour(), t.Minute(), zone)
+}
+
+// Timestamp shows one phrasing and carries the other in its tooltip, so the
+// exact moment is always one hover away and always machine-readable.
+templ Timestamp(p TimestampProps) {
+	{{ absolute := absoluteTime(p.At, p.location()) }}
+	{{ relative := relativeTime(p.At, p.Now) }}
+	if p.Absolute {
+		<time datetime={ p.At.Format(time.RFC3339) } title={ relative } class="tabular-nums">{ absolute }</time>
+	} else {
+		<time datetime={ p.At.Format(time.RFC3339) } title={ absolute }>{ relative }</time>
+	}
+}
