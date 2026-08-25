@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"os"
 
-	"example.com/components/ui"
 	"github.com/a-h/templ"
+	"github.com/esrid/back-office-kit/ui"
 )
 
 // Section is one entry of the gallery.

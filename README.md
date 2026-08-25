@@ -37,33 +37,62 @@ publier via GitHub Actions.
 - **La logique pure est testée.** Calcul des pages, construction des query
   strings, bornages : fonctions pures, jamais de mutation de l'appelant.
 
-## Démarrer
+## L'utiliser dans votre projet
 
 ```sh
+go get github.com/esrid/back-office-kit
+```
+
+Les fichiers `*_templ.go` sont versionnés, donc le paquet est utilisable sans
+installer templ. Vous n'avez besoin de templ que pour vos propres templates.
+
+Tailwind doit voir les classes du kit, sinon le CSS manquera à l'exécution.
+Ajoutez la source dans votre `app.css` :
+
+```css
+@import "tailwindcss";
+@plugin "daisyui";
+@source "../path/vers/back-office-kit/ui";
+```
+
+Puis chargez Unpoly dans votre `<head>` — le kit fonctionne sans lui, Unpoly ne
+fait qu'éviter les rechargements.
+
+## Une page complète
+
+`example/` est une page réelle : filtre, tri et pagination servis par un vrai
+serveur Go, sans état client.
+
+```sh
+git clone https://github.com/esrid/back-office-kit && cd back-office-kit
 npm install
-templ generate                 # les *_templ.go ne sont pas versionnés
 npx tailwindcss -i assets/app.css -o dist/app.css --minify
-go run ./cmd/gallery           # écrit dist/gallery.html
-go test ./ui/
+go run ./example        # http://localhost:8080
 ```
 
-## Utiliser les composants
-
-```go
-cols := []ui.Column[User]{
-    ui.Text("Nom", "name", func(u User) string { return u.Name }),
-    {Header: "Statut", Sort: "status",
-     Cell: func(u User) templ.Component { return ui.StatusBadge(u.Status) }},
-}
-```
+L'ossature d'un écran de liste tient en un bloc :
 
 ```templ
-@ui.IndexPage(ui.PageProps{Title: "Utilisateurs", PrimaryAction: inviteButton()},
-    ui.FilterBar(filters, r.URL.Query(), "#users")) {
-    @ui.DataTable("users", cols, users, r.URL.Query(), nil) {
-        @ui.Pagination(page, total, 20, r.URL.Query(), "#users")
+@ui.Shell("Acme Admin", nav(), "/", operator, flashes) {
+    @ui.IndexPage(ui.PageProps{Title: "Utilisateurs"}, ui.FilterBar(filters(), q, "#users")) {
+        @ui.DataTable("users", columns(), rows, q, nil) {
+            @ui.Pagination(page, total, 20, q, "#users")
+        }
     }
 }
+```
+
+Le handler lit `r.URL.Query()`, filtre, trie, pagine, et rend. Le kit ne garde
+aucun état : `ui.SortHref`, `ui.PageHref` et `ui.ResetHref` construisent les
+URL, votre code les applique aux données.
+
+## Construire la galerie
+
+```sh
+templ generate
+npx tailwindcss -i assets/app.css -o dist/app.css --minify
+go run ./cmd/gallery     # écrit dist/gallery.html
+go test ./...
 ```
 
 ## Côté serveur
@@ -97,6 +126,17 @@ committer et re-rend le formulaire ; seul le champ modifié bouge.
 
 Émettez toujours la zone `[up-flashes]` : Unpoly la met à jour même quand elle
 n'est pas ciblée, et un conteneur vide n'efface pas les messages existants.
+
+## Deux pièges qui ne se voient qu'à l'exécution
+
+**L'historique du navigateur.** Unpoly ne change l'URL que lorsqu'une cible
+principale est rendue — *« This is to prevent location changes when rendering a
+minor fragment »*. Un tableau ciblé par `#users` n'en est pas une, donc tri et
+pagination s'appliquaient sans apparaître dans l'URL et disparaissaient au
+rechargement. `DataTable`, `Pagination`, `FilterBar` et `DetailTabs` portent
+donc `[up-history="true"]`. Les fragments réellement mineurs — `InlineEdit`,
+`RepeaterField`, `AsyncState` — gardent le défaut : ils ne doivent pas polluer
+l'historique.
 
 ## Une règle Tailwind à ne pas oublier
 

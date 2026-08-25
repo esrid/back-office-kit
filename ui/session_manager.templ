@@ -1,0 +1,80 @@
+package ui
+
+type SecuritySession struct {
+	ID               string
+	Device           string
+	Browser          string
+	Location         string
+	IP               string
+	LastSeen         string
+	LastSeenDatetime string
+	Current          bool
+	Revocable        bool
+}
+
+type SessionManagerProps struct {
+	ID          string
+	Title       string
+	Description string
+	Action      string
+	SubjectID   string
+	Version     string
+	Sessions    []SecuritySession
+	CanRevokeAll bool
+}
+
+func sessionManagerTitle(title string) string {
+	if title == "" {
+		return "Sessions actives"
+	}
+	return title
+}
+
+// SessionManager submits exact session IDs to the backend. The current
+// session is labelled explicitly and cannot be mistaken for another device.
+templ SessionManager(p SessionManagerProps) {
+	<section id={ p.ID } class="card card-border bg-base-100" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body p-4 gap-4">
+			<header class="flex flex-wrap items-start justify-between gap-3">
+				<div>
+					<h2 id={ p.ID + "-title" } class="font-semibold">{ sessionManagerTitle(p.Title) }</h2>
+					if p.Description != "" { <p class="mt-1 text-sm opacity-70">{ p.Description }</p> }
+				</div>
+				if p.CanRevokeAll {
+					<button type="submit" form={ p.ID + "-form" } name="intent" value="revoke_others" class="btn btn-error btn-outline btn-sm">Révoquer les autres sessions</button>
+				}
+			</header>
+			<form id={ p.ID + "-form" } method="post" action={ templ.SafeURL(p.Action) } up-submit>
+				<input type="hidden" name="subject_id" value={ p.SubjectID }/>
+				<input type="hidden" name="session_version" value={ p.Version }/>
+				if len(p.Sessions) == 0 {
+					@EmptyState("Aucune session active", "Les nouvelles connexions apparaîtront ici.", nil)
+				} else {
+					<ul class="flex flex-col gap-2">
+						for _, session := range p.Sessions {
+							<li class="rounded-box border border-base-300 p-3" data-session-id={ session.ID }>
+								<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+									<div class="min-w-0">
+										<div class="flex flex-wrap items-center gap-2">
+											<strong class="text-sm">{ session.Device }</strong>
+											if session.Current { <span class="badge badge-success badge-sm">Session actuelle</span> }
+										</div>
+										if session.Browser != "" { <p class="text-sm opacity-70">{ session.Browser }</p> }
+										<dl class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-60">
+											if session.Location != "" { <div><dt class="sr-only">Localisation</dt><dd>{ session.Location }</dd></div> }
+											if session.IP != "" { <div><dt class="sr-only">Adresse IP</dt><dd class="font-mono">{ session.IP }</dd></div> }
+											if session.LastSeen != "" { <div><dt class="sr-only">Dernière activité</dt><dd><time datetime={ session.LastSeenDatetime }>{ session.LastSeen }</time></dd></div> }
+										</dl>
+									</div>
+									if session.Revocable && !session.Current {
+										<button type="submit" name="intent" value={ "revoke:" + session.ID } class="btn btn-error btn-outline btn-sm">Révoquer</button>
+									}
+								</div>
+							</li>
+						}
+					</ul>
+				}
+			</form>
+		</div>
+	</section>
+}

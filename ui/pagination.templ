@@ -89,6 +89,7 @@ templ Pagination(current int, totalItems int, perPage int, q url.Values, target 
 							href={ templ.SafeURL(PageHref(q, p)) }
 							up-follow
 							up-target={ target }
+							up-history="true"
 							class={ "join-item btn btn-sm", templ.KV("btn-active", p == current) }
 							aria-current={ ariaCurrent(p == current) }
 						>
@@ -104,7 +105,7 @@ templ Pagination(current int, totalItems int, perPage int, q url.Values, target 
 
 templ pageLink(q url.Values, page int, target string, enabled bool, label string) {
 	if enabled {
-		<a href={ templ.SafeURL(PageHref(q, page)) } up-follow up-target={ target } class="join-item btn btn-sm">{ label }</a>
+		<a href={ templ.SafeURL(PageHref(q, page)) } up-follow up-target={ target } up-history="true" class="join-item btn btn-sm">{ label }</a>
 	} else {
 		<button class="join-item btn btn-sm btn-disabled" aria-hidden="true">{ label }</button>
 	}

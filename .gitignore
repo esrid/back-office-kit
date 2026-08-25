@@ -1,4 +1,6 @@
+# Les *_templ.go sont volontairement versionnés : sans eux, `go get` livre
+# un paquet qui compile et n'expose aucun composant.
 node_modules/
 bin/
 admin.db
-*_templ.go
+

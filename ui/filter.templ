@@ -79,6 +79,7 @@ templ FilterBar(fs []Filter, q url.Values, target string) {
 	<form
 		method="get"
 		up-target={ target }
+		up-history="true"
 		up-autosubmit
 		class="flex flex-wrap items-center gap-2"
 		role="search"
@@ -132,6 +133,7 @@ templ FilterBar(fs []Filter, q url.Values, target string) {
 				href={ templ.SafeURL(ResetHref(q, fs)) }
 				up-follow
 				up-target={ target }
+				up-history="true"
 				class="btn btn-sm btn-ghost"
 			>Réinitialiser</a>
 		}

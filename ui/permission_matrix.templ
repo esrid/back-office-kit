@@ -1,0 +1,138 @@
+package ui
+
+type PermissionColumn struct {
+	Key         string
+	Label       string
+	Description string
+}
+
+type PermissionCell struct {
+	Permission string
+	Granted    bool
+	Mutable    bool
+	Inherited  bool
+	Origin     string
+	Reason     string
+}
+
+type PermissionRow struct {
+	Resource    string
+	Label       string
+	Description string
+	Cells       []PermissionCell
+}
+
+type PermissionMatrixProps struct {
+	ID          string
+	Title       string
+	Description string
+	Action      string
+	RoleID      string
+	RoleVersion string
+	Columns     []PermissionColumn
+	Rows        []PermissionRow
+	SaveLabel   string
+	Disabled    bool
+}
+
+func permissionMatrixTitle(title string) string {
+	if title == "" {
+		return "Permissions du rôle"
+	}
+	return title
+}
+
+func permissionMatrixSaveLabel(label string) string {
+	if label == "" {
+		return "Enregistrer les permissions"
+	}
+	return label
+}
+
+func permissionCellLabel(row PermissionRow, column PermissionColumn, cell PermissionCell) string {
+	label := column.Label + " — " + row.Label
+	if cell.Inherited {
+		label += " (héritée)"
+	}
+	return label
+}
+
+// PermissionMatrix edits only the mutable capabilities supplied by the
+// backend. The backend must validate the role version and the complete
+// permission allow-list again when the form is submitted.
+templ PermissionMatrix(p PermissionMatrixProps) {
+	<section id={ p.ID } class="card card-border bg-base-100" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body p-4 gap-4">
+			<header>
+				<h2 id={ p.ID + "-title" } class="font-semibold">{ permissionMatrixTitle(p.Title) }</h2>
+				if p.Description != "" {
+					<p class="mt-1 text-sm opacity-70">{ p.Description }</p>
+				}
+			</header>
+			<form method="post" action={ templ.SafeURL(p.Action) } up-submit class="flex flex-col gap-4">
+				<input type="hidden" name="role_id" value={ p.RoleID }/>
+				<input type="hidden" name="role_version" value={ p.RoleVersion }/>
+				<div class="overflow-x-auto rounded-box border border-base-300">
+					<table class="table table-sm">
+						<thead>
+							<tr>
+								<th scope="col">Ressource</th>
+								for _, column := range p.Columns {
+									<th scope="col" class="text-center min-w-28">
+										<span class="block">{ column.Label }</span>
+										if column.Description != "" {
+											<span class="block text-xs font-normal opacity-60">{ column.Description }</span>
+										}
+									</th>
+								}
+							</tr>
+						</thead>
+						<tbody>
+							for _, row := range p.Rows {
+								<tr data-permission-resource={ row.Resource }>
+									<th scope="row">
+										<span class="block font-medium">{ row.Label }</span>
+										if row.Description != "" {
+											<span class="block text-xs font-normal opacity-60">{ row.Description }</span>
+										}
+									</th>
+									for i, column := range p.Columns {
+										<td class="text-center">
+											if i < len(row.Cells) {
+												{{ cell := row.Cells[i] }}
+												if cell.Granted && (!cell.Mutable || p.Disabled) {
+													<input type="hidden" name="permissions" value={ cell.Permission }/>
+												}
+												<label class="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center" title={ cell.Reason }>
+													<input
+														type="checkbox"
+														class="checkbox checkbox-sm"
+														name="permissions"
+														value={ cell.Permission }
+														aria-label={ permissionCellLabel(row, column, cell) }
+														checked?={ cell.Granted }
+														disabled?={ !cell.Mutable || p.Disabled }
+													/>
+												</label>
+												if cell.Inherited {
+													<span class="block text-xs opacity-60">
+														Héritée
+														if cell.Origin != "" { de { cell.Origin } }
+													</span>
+												}
+											}
+										</td>
+									}
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<div class="flex flex-wrap items-center justify-between gap-3">
+					<p class="text-xs opacity-60">Les permissions héritées sont affichées mais ne peuvent pas être modifiées ici.</p>
+					<button type="submit" class="btn btn-primary btn-sm" disabled?={ p.Disabled }>{ permissionMatrixSaveLabel(p.SaveLabel) }</button>
+				</div>
+			</form>
+		</div>
+	</section>
+}

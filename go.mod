@@ -1,4 +1,4 @@
-module example.com/components
+module github.com/esrid/back-office-kit
 
 go 1.27.0
 

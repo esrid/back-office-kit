@@ -1,6 +1,6 @@
 package main
 
-import "example.com/components/ui"
+import "github.com/esrid/back-office-kit/ui"
 
 func demoPaletteGroups() []ui.PaletteGroup {
 	return []ui.PaletteGroup{

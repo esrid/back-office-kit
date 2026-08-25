@@ -89,6 +89,7 @@ templ DataTable[T any](id string, cols []Column[T], rows []T, q url.Values, empt
 											href={ templ.SafeURL(SortHref(q, c.Sort)) }
 											up-follow
 											up-target={ "#" + id }
+											up-history="true"
 											class="inline-flex items-center gap-1 hover:text-base-content"
 										>
 											{ c.Header }

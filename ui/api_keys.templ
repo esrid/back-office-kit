@@ -1,0 +1,154 @@
+package ui
+
+type APIKeyStatus string
+
+const (
+	APIKeyActive   APIKeyStatus = "active"
+	APIKeyExpiring APIKeyStatus = "expiring"
+	APIKeyRevoked  APIKeyStatus = "revoked"
+)
+
+func apiKeyStatusLabel(status APIKeyStatus) string {
+	switch status {
+	case APIKeyExpiring:
+		return "Expire bientôt"
+	case APIKeyRevoked:
+		return "Révoquée"
+	default:
+		return "Active"
+	}
+}
+
+func apiKeyStatusTone(status APIKeyStatus) string {
+	switch status {
+	case APIKeyExpiring:
+		return "warning"
+	case APIKeyRevoked:
+		return "neutral"
+	default:
+		return "success"
+	}
+}
+
+type APIKey struct {
+	ID               string
+	Name             string
+	Prefix           string
+	Scopes           []string
+	CreatedAt        string
+	CreatedDatetime  string
+	LastUsed         string
+	LastUsedDatetime string
+	ExpiresAt        string
+	ExpiresDatetime  string
+	Status           APIKeyStatus
+	Revocable        bool
+}
+
+type APIKeyManagerProps struct {
+	ID          string
+	Title       string
+	Description string
+	Action      string
+	Version     string
+	Keys        []APIKey
+	CreateHref  string
+}
+
+func apiKeyManagerTitle(title string) string {
+	if title == "" {
+		return "Clés d’API"
+	}
+	return title
+}
+
+// APIKeyManager never receives or renders a full credential. Prefixes are
+// display-only; revocation is bound to the opaque key ID and list version.
+templ APIKeyManager(p APIKeyManagerProps) {
+	<section id={ p.ID } class="card card-border bg-base-100" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body p-4 gap-4">
+			<header class="flex flex-wrap items-start justify-between gap-3">
+				<div>
+					<h2 id={ p.ID + "-title" } class="font-semibold">{ apiKeyManagerTitle(p.Title) }</h2>
+					if p.Description != "" { <p class="mt-1 text-sm opacity-70">{ p.Description }</p> }
+				</div>
+				if p.CreateHref != "" { <a href={ templ.SafeURL(p.CreateHref) } up-follow class="btn btn-primary btn-sm">Créer une clé</a> }
+			</header>
+			if len(p.Keys) == 0 {
+				@EmptyState("Aucune clé d’API", "Créez une clé avec la portée minimale nécessaire.", nil)
+			} else {
+				<form method="post" action={ templ.SafeURL(p.Action) } up-submit>
+					<input type="hidden" name="key_version" value={ p.Version }/>
+					<ul class="flex flex-col gap-2">
+						for _, key := range p.Keys {
+							<li class="rounded-box border border-base-300 p-3" data-key-id={ key.ID }>
+								<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+									<div class="min-w-0">
+										<div class="flex flex-wrap items-center gap-2">
+											<strong class="text-sm">{ key.Name }</strong>
+											<span class={ "badge badge-sm", toneOf(apiKeyStatusTone(key.Status)).Badge }>{ apiKeyStatusLabel(key.Status) }</span>
+										</div>
+										<code class="mt-1 block text-xs">{ key.Prefix }••••••••</code>
+										if len(key.Scopes) > 0 {
+											<ul class="mt-2 flex flex-wrap gap-1" aria-label="Portées">
+												for _, scope := range key.Scopes { <li class="badge badge-sm badge-outline font-mono">{ scope }</li> }
+											</ul>
+										}
+										<p class="mt-2 text-xs opacity-60">
+											if key.CreatedAt != "" { créée <time datetime={ key.CreatedDatetime }>{ key.CreatedAt }</time> }
+											if key.LastUsed != "" { · utilisée <time datetime={ key.LastUsedDatetime }>{ key.LastUsed }</time> }
+											if key.ExpiresAt != "" { · expire <time datetime={ key.ExpiresDatetime }>{ key.ExpiresAt }</time> }
+										</p>
+									</div>
+									if key.Revocable && key.Status != APIKeyRevoked {
+										<button type="submit" name="intent" value={ "revoke:" + key.ID } class="btn btn-error btn-outline btn-sm">Révoquer</button>
+									}
+								</div>
+							</li>
+						}
+					</ul>
+				</form>
+			}
+		</div>
+	</section>
+}
+
+type SecretRevealProps struct {
+	ID                string
+	Name              string
+	Secret            string
+	SecretID          string
+	CreatedAt         string
+	CreatedDatetime   string
+	AcknowledgeAction string
+}
+
+// SecretReveal is a one-time server-rendered handoff. The full secret appears
+// only as visible text and a readonly value, never in data-* attributes.
+templ SecretReveal(p SecretRevealProps) {
+	if p.Secret != "" {
+		<section id={ p.ID } class="alert alert-warning items-start" aria-labelledby={ p.ID + "-title" }>
+			<div class="w-full min-w-0">
+				<h2 id={ p.ID + "-title" } class="font-semibold">Enregistrez cette clé maintenant</h2>
+				<p class="mt-1 text-sm">Elle ne sera plus affichée après avoir quitté cet écran.</p>
+				if p.Name != "" || p.CreatedAt != "" {
+					<p class="mt-2 text-xs opacity-80">
+						if p.Name != "" { { p.Name } }
+						if p.CreatedAt != "" { · créée <time datetime={ p.CreatedDatetime }>{ p.CreatedAt }</time> }
+					</p>
+				}
+				<label class="form-control mt-3">
+					<span class="label-text mb-1 font-medium">Secret</span>
+					<input class="input input-bordered w-full font-mono text-sm select-all" readonly value={ p.Secret } aria-describedby={ p.ID + "-hint" }/>
+				</label>
+				<p id={ p.ID + "-hint" } class="mt-1 text-xs opacity-80">Sélectionnez puis copiez la valeur dans votre gestionnaire de secrets.</p>
+				if p.AcknowledgeAction != "" {
+					<form method="post" action={ templ.SafeURL(p.AcknowledgeAction) } up-submit class="mt-3">
+						<input type="hidden" name="secret_id" value={ p.SecretID }/>
+						<button type="submit" class="btn btn-sm">J’ai enregistré la clé</button>
+					</form>
+				}
+			</div>
+		</section>
+	}
+}

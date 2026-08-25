@@ -1,0 +1,46 @@
+package main
+
+import "github.com/esrid/back-office-kit/ui"
+
+// Layout is the document shell. A consumer of the kit owns this file: the kit
+// gives components, not a <head>.
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html lang="fr">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title }</title>
+			<link rel="stylesheet" href="/static/app.css"/>
+			<script src="https://unpkg.com/unpoly@3.11.0/unpoly.min.js"></script>
+			<link rel="stylesheet" href="https://unpkg.com/unpoly@3.11.0/unpoly.min.css"/>
+		</head>
+		<body>
+			{ children... }
+		</body>
+	</html>
+}
+
+templ UsersPage(v UsersView) {
+	@Layout("Utilisateurs") {
+		@ui.Shell("Acme Admin", nav(), "/", v.Operator, v.Flashes) {
+			@ui.IndexPage(ui.PageProps{
+				Title:    "Utilisateurs",
+				Subtitle: v.Subtitle,
+				Actions:  exportButton(),
+			}, ui.FilterBar(filters(), v.Query, "#users")) {
+				@ui.DataTable("users", columns(v), v.Rows, v.Query, nil) {
+					@ui.Pagination(v.Page, v.Total, perPage, v.Query, "#users")
+				}
+			}
+		}
+	}
+}
+
+templ exportButton() {
+	<button class="btn btn-sm">Exporter</button>
+}
+
+templ roleCell(role string) {
+	<span class="text-sm">{ role }</span>
+}

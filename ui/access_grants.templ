@@ -1,0 +1,85 @@
+package ui
+
+type AccessGrant struct {
+	ID                string
+	Subject           string
+	SubjectHref       string
+	Kind              string
+	Permission        string
+	Scope             string
+	GrantedBy         string
+	GrantedAt         string
+	GrantedDatetime   string
+	ExpiresAt         string
+	ExpiresDatetime   string
+	Revocable         bool
+}
+
+type AccessGrantListProps struct {
+	ID          string
+	Title       string
+	Description string
+	Action      string
+	Version     string
+	Items       []AccessGrant
+	CreateHref  string
+}
+
+func accessGrantListTitle(title string) string {
+	if title == "" {
+		return "Accès directs"
+	}
+	return title
+}
+
+// AccessGrantList exposes exact backend grants and revokes them by immutable
+// grant ID. It does not infer effective access from what is visible.
+templ AccessGrantList(p AccessGrantListProps) {
+	<section id={ p.ID } class="card card-border bg-base-100" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body p-4 gap-4">
+			<header class="flex flex-wrap items-start justify-between gap-3">
+				<div>
+					<h2 id={ p.ID + "-title" } class="font-semibold">{ accessGrantListTitle(p.Title) }</h2>
+					if p.Description != "" { <p class="mt-1 text-sm opacity-70">{ p.Description }</p> }
+				</div>
+				if p.CreateHref != "" {
+					<a href={ templ.SafeURL(p.CreateHref) } up-follow class="btn btn-primary btn-sm">Accorder un accès</a>
+				}
+			</header>
+			if len(p.Items) == 0 {
+				@EmptyState("Aucun accès direct", "Les accès hérités restent visibles dans la matrice des permissions.", nil)
+			} else {
+				<form method="post" action={ templ.SafeURL(p.Action) } up-submit>
+					<input type="hidden" name="grant_version" value={ p.Version }/>
+					<ul class="flex flex-col gap-2">
+						for _, grant := range p.Items {
+							<li class="rounded-box border border-base-300 p-3" data-grant-id={ grant.ID }>
+								<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+									<div class="min-w-0">
+										<div class="flex flex-wrap items-center gap-2">
+											if grant.SubjectHref != "" {
+												<a href={ templ.SafeURL(grant.SubjectHref) } up-follow class="link link-hover font-medium">{ grant.Subject }</a>
+											} else { <span class="font-medium">{ grant.Subject }</span> }
+											if grant.Kind != "" { <span class="badge badge-sm">{ grant.Kind }</span> }
+										</div>
+										<p class="mt-1 text-sm"><strong>{ grant.Permission }</strong> · { grant.Scope }</p>
+										<p class="mt-1 text-xs opacity-60">
+											if grant.GrantedBy != "" { accordé par { grant.GrantedBy } }
+											if grant.GrantedAt != "" { · <time datetime={ grant.GrantedDatetime }>{ grant.GrantedAt }</time> }
+											if grant.ExpiresAt != "" { · expire <time datetime={ grant.ExpiresDatetime }>{ grant.ExpiresAt }</time> }
+										</p>
+									</div>
+									if grant.Revocable {
+										<button type="submit" name="intent" value={ "revoke:" + grant.ID } class="btn btn-error btn-outline btn-sm">Révoquer</button>
+									} else {
+										<span class="badge badge-sm">Géré par une politique</span>
+									}
+								</div>
+							</li>
+						}
+					</ul>
+				</form>
+			}
+		</div>
+	</section>
+}

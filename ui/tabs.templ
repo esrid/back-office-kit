@@ -19,6 +19,7 @@ templ DetailTabs(tabs []DetailTab, current string, target string) {
 					up-follow
 					if target != "" {
 						up-target={ target }
+						up-history="true"
 					}
 				>
 					{ tab.Label }
