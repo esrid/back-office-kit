@@ -6,7 +6,25 @@ Composants de back-office en [templ](https://templ.guide) + [daisyUI 5](https://
 écrans complets (liste, fiche, formulaire, réglages), aux interfaces agentiques
 (plan d'action, carte d'approbation, journal d'exécution) et à la gouvernance.
 
-**Documentation : [la galerie](https://esrid.github.io/back-office-kit/gallery.html)** — chaque composant rendu pour de vrai, avec son code d'appel.
+## Documentation
+
+La galerie rend chaque composant pour de vrai, avec son code d'appel. Elle se
+construit depuis le dépôt et s'ouvre en local :
+
+```sh
+npm install && templ generate
+npx tailwindcss -i assets/app.css -o dist/app.css --minify
+go run ./cmd/gallery && open dist/gallery.html
+```
+
+`dist/gallery.html` est autonome (CSS inline, aucune dépendance réseau hors
+Google Fonts) et versionné : il s'ouvre aussi directement depuis un clone, sans
+rien construire.
+
+GitHub Pages n'est pas activé — il demande un dépôt public ou un plan payant.
+Si le dépôt passe public, la source Pages devra être `/` ou `/docs` (`/dist`
+n'est pas un chemin accepté), donc soit renommer le dossier de sortie, soit
+publier via GitHub Actions.
 
 ## Principes
 
