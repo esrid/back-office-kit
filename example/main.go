@@ -44,7 +44,8 @@ type UsersView struct {
 func nav() []ui.NavItem {
 	return []ui.NavItem{
 		{Label: "Utilisateurs", Href: "/"},
-		{Label: "Facturation", Href: "/billing"},
+		{Label: "Dossiers", Href: "/records"},
+		{Label: "Approbations", Href: "/approvals"},
 		{Label: "Réglages", Href: "/settings"},
 	}
 }
@@ -147,6 +148,8 @@ func main() {
 		}
 		render(r.Context(), w, UsersPage(view))
 	})
+
+	registerRecords(mux, "amelie@acme.co")
 
 	// Cross-origin POSTs are rejected without a token or a cookie. Go 1.25+.
 	protected := http.NewCrossOriginProtection().Handler(mux)

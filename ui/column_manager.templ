@@ -34,6 +34,10 @@ func columnManagerTitle(title string) string {
 
 // ColumnManager persists visibility, order and density through one backend
 // form. Reordering uses explicit buttons, so drag-and-drop is never required.
+//
+// Deliberately no [up-history], unlike DataTable or QueryBuilder: this form is
+// a POST and the preference is persisted server-side. Pushing a POST URL into
+// history would make the back button replay a submission.
 templ ColumnManager(p ColumnManagerProps) {
 	<section class="card bg-base-100 w-full max-w-lg" aria-labelledby={ p.ID + "-title" }>
 		<form

@@ -1,0 +1,74 @@
+package main
+
+import "github.com/esrid/back-office-kit/ui"
+
+// RecordsPage exercises the components no server had ever driven: MasterDetail,
+// ColumnManager and ApprovalInbox. Their state lives in the query string, so
+// this page is where [up-history] gets proven rather than assumed.
+templ RecordsPage(v RecordsView) {
+	@Layout("Dossiers") {
+		@ui.Shell("Acme Admin", nav(), "/records", v.Operator, nil) {
+			@ui.PageHeader(ui.PageProps{
+				Title:    "Dossiers",
+				Subtitle: v.Subtitle,
+			})
+			<div class="flex flex-col gap-6 mt-5">
+				@ui.MasterDetail(ui.MasterDetailProps{
+					ID:          "records",
+					Title:       "Dossiers ouverts",
+					Subtitle:    "Sélectionnez un dossier pour l'ouvrir à droite",
+					List:        recordsNav(v),
+					DetailLabel: "Détail du dossier",
+				}) {
+					@recordDetail(v)
+				}
+				@ui.ColumnManager(ui.ColumnManagerProps{
+					ID:         "columns",
+					Title:      "Colonnes affichées",
+					Action:     "/records/columns",
+					Target:     "#columns",
+					Columns:    v.Columns,
+					Density:    v.Density,
+					AllowReset: true,
+				})
+			</div>
+		}
+	}
+}
+
+templ recordsNav(v RecordsView) {
+	@ui.MasterDetailNav("Dossiers", v.Items, v.CurrentHref, "#records")
+}
+
+templ recordDetail(v RecordsView) {
+	if v.Current == nil {
+		@ui.EmptyState("Aucun dossier sélectionné", "Choisissez un dossier dans la liste de gauche.", nil)
+	} else {
+		<div class="flex flex-col gap-4">
+			<div>
+				<h2 class="font-semibold text-lg">{ v.Current.Title }</h2>
+				<p class="text-sm opacity-60">{ v.Current.Description }</p>
+			</div>
+			@ui.DetailList([]ui.Option{
+				{Label: "Référence", Value: v.Current.ID},
+				{Label: "Statut", Value: v.Current.Meta},
+			})
+		</div>
+	}
+}
+
+templ ApprovalsPage(v ApprovalsView) {
+	@Layout("Approbations") {
+		@ui.Shell("Acme Admin", nav(), "/approvals", v.Operator, nil) {
+			@ui.PageHeader(ui.PageProps{Title: "Approbations", Subtitle: v.Subtitle})
+			<div class="mt-5">
+				@ui.ApprovalInbox(ui.ApprovalInboxProps{
+					ID:     "approvals",
+					Title:  "En attente de décision",
+					Target: "#approvals",
+					Items:  v.Items,
+				})
+			</div>
+		}
+	}
+}

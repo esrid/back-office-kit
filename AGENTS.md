@@ -76,6 +76,17 @@ au milieu d'un élément ne parse pas. Passer par une variable :
 @Money(montant)
 ```
 
+**Pas de commentaire `//` dans un bloc d'attributs.** templ ne les parse pas :
+
+```templ
+<a href={ x }
+   up-target={ t }
+   // ceci casse la génération
+   up-history="true">
+```
+
+L'explication va dans le commentaire de doc du composant, au-dessus du `templ`.
+
 **Les imports sont par fichier.** Un `.templ` a son propre bloc `import`, un
 `.go` aussi, même dans le même paquet. templ accepte du Go de premier niveau,
 donc un composant et sa logique peuvent tenir dans un seul `.templ`.

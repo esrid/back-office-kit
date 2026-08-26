@@ -41,6 +41,11 @@ templ MasterDetail(p MasterDetailProps) {
 
 // MasterDetailNav keeps selection in ordinary URLs and swaps only the detail
 // region when Unpoly is available.
+//
+// [up-history] is required: Unpoly only updates the address bar when a main
+// target is rendered, and the detail region is not one. Without it the
+// selection applies but vanishes on reload -- verified against a running
+// server, not assumed.
 templ MasterDetailNav(title string, items []MasterDetailItem, current string, target string) {
 	<nav class="card card-border bg-base-100" aria-label={ title }>
 		<div class="card-body p-2">
@@ -53,6 +58,7 @@ templ MasterDetailNav(title string, items []MasterDetailItem, current string, ta
 							up-follow
 							if target != "" {
 								up-target={ target }
+								up-history="true"
 							}
 							class={ templ.KV("menu-active", item.ID == current) }
 							aria-current={ ariaCurrent(item.ID == current) }

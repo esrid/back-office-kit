@@ -3,6 +3,8 @@ package main
 import (
 	"net/url"
 	"testing"
+
+	"github.com/esrid/back-office-kit/ui"
 )
 
 func firstNames(rows []User) []string {
@@ -68,4 +70,49 @@ func TestSelectUsers(t *testing.T) {
 			t.Errorf("got %d lignes / total %d", len(rows), total)
 		}
 	})
+}
+
+func TestSelectRecord(t *testing.T) {
+	items := seedRecords()
+
+	if rec, href := selectRecord(items, url.Values{}); rec != nil || href != "" {
+		t.Errorf("no query, no selection: %v %q", rec, href)
+	}
+	if rec, _ := selectRecord(items, url.Values{"dossier": {"INCONNU"}}); rec != nil {
+		t.Errorf("an unknown id must not select anything, got %v", rec)
+	}
+	rec, href := selectRecord(items, url.Values{"dossier": {"DOS-4193"}})
+	if rec == nil || rec.ID != "DOS-4193" {
+		t.Fatalf("selection failed: %v", rec)
+	}
+	if href != rec.Href {
+		t.Errorf("href = %q, want %q", href, rec.Href)
+	}
+}
+
+func TestSelectColumns(t *testing.T) {
+	cols, density := selectColumns(url.Values{})
+	if density != ui.DensityComfortable {
+		t.Errorf("default density = %q", density)
+	}
+	visible := 0
+	for _, c := range cols {
+		if c.Visible {
+			visible++
+		}
+	}
+	if visible != 3 {
+		t.Errorf("visible by default = %d, want 3", visible)
+	}
+
+	// A locked column cannot be hidden, whatever the query says.
+	hidden, _ := selectColumns(url.Values{"hide": {"ref", "owner"}})
+	for _, c := range hidden {
+		if c.Key == "ref" && !c.Visible {
+			t.Error("a locked column must stay visible")
+		}
+		if c.Key == "owner" && c.Visible {
+			t.Error("owner should have been hidden")
+		}
+	}
 }
