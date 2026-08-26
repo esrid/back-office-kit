@@ -14,7 +14,7 @@ templ SavedViewBar(views []SavedView, current string, saveHref string) {
 			}
 		</div>
 		if saveHref != "" {
-			<a href={ templ.SafeURL(saveHref) } up-layer="new modal" class="btn btn-sm btn-ghost whitespace-nowrap">+ Enregistrer la vue</a>
+			<a href={ templ.SafeURL(saveHref) } up-layer="new" class="btn btn-sm btn-ghost whitespace-nowrap">+ Enregistrer la vue</a>
 		}
 	</nav>
 }

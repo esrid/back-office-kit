@@ -67,7 +67,7 @@ func paletteCommandClass(command PaletteCommand) string {
 
 // CommandPaletteTrigger opens the ordinary server-rendered palette response.
 templ CommandPaletteTrigger(p CommandPaletteTriggerProps) {
-	<a href={ templ.SafeURL(p.Href) } up-layer="new modal" class="btn btn-sm">
+	<a href={ templ.SafeURL(p.Href) } up-layer="new" class="btn btn-sm">
 		<span>{ p.Label }</span>
 		if p.Shortcut != "" {
 			<kbd class="kbd kbd-sm">{ p.Shortcut }</kbd>

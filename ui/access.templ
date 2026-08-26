@@ -45,8 +45,21 @@ type AccessNoticeProps struct {
 	Policy      string
 	ActionHref  string
 	ActionLabel string
-	ActionLayer string
+	ActionLayer string // stacking only: "new", "swap" or "shatter"
+	ActionMode  string // overlay type: "modal", "drawer", "popup", "cover"
 	HelpHref    string
+}
+
+// layerStacking keeps only the three values [up-layer] accepts. Anything else
+// is dropped rather than emitted — notably "new modal", which folds the mode
+// into the stacking value: Unpoly does not parse it, and the overlay silently
+// never opens as intended. The overlay type belongs in [up-mode].
+func layerStacking(v string) string {
+	switch v {
+	case "new", "swap", "shatter":
+		return v
+	}
+	return ""
 }
 
 func accessNoticeTitle(p AccessNoticeProps) string {
@@ -98,14 +111,20 @@ templ AccessNotice(p AccessNoticeProps) {
 			</div>
 			<div class="flex flex-wrap justify-end gap-2 sm:self-center">
 				if p.HelpHref != "" {
-					<a href={ templ.SafeURL(p.HelpHref) } class="btn btn-ghost btn-sm">En savoir plus</a>
+					// Solid, not ghost: a transparent button on the notice's tinted
+					// surface measured 1.64:1 against its own text. The default
+					// variant carries its own background and reaches 15.6:1.
+					<a href={ templ.SafeURL(p.HelpHref) } class="btn btn-sm">En savoir plus</a>
 				}
 				if p.ActionHref != "" {
 					<a
 						href={ templ.SafeURL(p.ActionHref) }
 						up-follow
-						if p.ActionLayer != "" {
-							up-layer={ p.ActionLayer }
+						if stacking := layerStacking(p.ActionLayer); stacking != "" {
+							up-layer={ stacking }
+							if p.ActionMode != "" {
+								up-mode={ p.ActionMode }
+							}
 						}
 						class="btn btn-sm"
 					>{ accessActionLabel(p.ActionLabel) }</a>

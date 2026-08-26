@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -77,5 +80,56 @@ func TestAgentReceiptEscapesBackendText(t *testing.T) {
 func TestRiskLevelsRemainDistinct(t *testing.T) {
 	if agentRiskTone(AgentRiskRead) == agentRiskTone(AgentRiskWrite) || agentRiskTone(AgentRiskWrite) == agentRiskTone(AgentRiskSensitive) {
 		t.Fatal("agent risk levels must have distinct semantic tones")
+	}
+}
+
+// [up-layer] accepts three stacking values and nothing else. Folding the
+// overlay mode in — "new modal", "new drawer" — parses as an unknown value and
+// the overlay silently never opens as asked.
+func TestLayerStackingRejectsFoldedModes(t *testing.T) {
+	for _, valid := range []string{"new", "swap", "shatter"} {
+		if got := layerStacking(valid); got != valid {
+			t.Errorf("layerStacking(%q) = %q", valid, got)
+		}
+	}
+	for _, invalid := range []string{"new modal", "new drawer", "modal", "", "popup", "NEW"} {
+		if got := layerStacking(invalid); got != "" {
+			t.Errorf("layerStacking(%q) = %q, want empty", invalid, got)
+		}
+	}
+
+	html := renderTier4(t, AccessNotice(AccessNoticeProps{
+		Decision: AccessDenied, Title: "Accès refusé",
+		ActionHref: "/request", ActionLayer: "new modal",
+	}))
+	if strings.Contains(html, "new modal") {
+		t.Errorf("a folded mode must never reach the markup: %s", html)
+	}
+}
+
+// No component may emit a folded [up-layer] value. Comment lines are skipped:
+// the fix in slideover.templ is documented by quoting the broken form, and a
+// guard that fires on its own explanation is a guard nobody keeps.
+func TestNoComponentFoldsTheLayerMode(t *testing.T) {
+	files, err := filepath.Glob("*.templ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	folded := regexp.MustCompile(`up-layer="[a-z]+ `)
+
+	for _, file := range files {
+		body, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for n, line := range strings.Split(string(body), "\n") {
+			if strings.HasPrefix(strings.TrimSpace(line), "//") {
+				continue
+			}
+			if folded.MatchString(line) {
+				t.Errorf("%s:%d folds the overlay mode into [up-layer]; it belongs in [up-mode]:\n\t%s",
+					file, n+1, strings.TrimSpace(line))
+			}
+		}
 	}
 }

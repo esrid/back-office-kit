@@ -7,7 +7,7 @@ type ConfirmActionProps struct {
 }
 
 templ ConfirmAction(p ConfirmActionProps) {
-	<a href={ templ.SafeURL(p.Href) } up-layer="new modal" class={ "btn btn-sm", p.Class }>{ p.Label }</a>
+	<a href={ templ.SafeURL(p.Href) } up-layer="new" class={ "btn btn-sm", p.Class }>{ p.Label }</a>
 }
 
 // ConfirmDialog is rendered by the modal response. typedName is validated by

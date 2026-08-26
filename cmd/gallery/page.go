@@ -117,7 +117,7 @@ body {
 .gal-index-n {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: .68rem;
-  color: color-mix(in oklch, var(--color-base-content) 35%, transparent);
+  color: color-mix(in oklch, var(--color-base-content) 55%, transparent);
   font-variant-numeric: tabular-nums;
 }
 .gal-rail-foot {
@@ -150,7 +150,7 @@ body {
 .gal-sec-n {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: .72rem; padding-top: .35rem;
-  color: color-mix(in oklch, var(--color-base-content) 32%, transparent);
+  color: color-mix(in oklch, var(--color-base-content) 55%, transparent);
   font-variant-numeric: tabular-nums;
 }
 .gal-sec h2 {
