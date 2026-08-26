@@ -273,10 +273,14 @@ func sections() []Section {
 	secs = append(secs, tier6Sections()...)
 	secs = append(secs, tier7Sections()...)
 	secs = append(secs, tier8Sections()...)
+	// Commerce et Marketing ne sont pas des tiers : ce sont d'autres domaines,
+	// donc ils ferment la liste au lieu de s'intercaler dans la progression.
+	secs = append(secs, commerceSections()...)
+	secs = append(secs, marketingSections()...)
 	// Numbering is assigned here, not written into each literal: the sections
 	// are a build order, so adding or removing one must not leave a gap or a
 	// duplicate numeral behind.
-	sigs := signatures("ui")
+	sigs := signatures("ui", "ui/marketing")
 	for i := range secs {
 		secs[i].N = i + 1
 		secs[i].Signature = signatureFor(sigs, secs[i].Title)

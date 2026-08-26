@@ -1,0 +1,58 @@
+package main
+
+import "github.com/esrid/back-office-kit/ui"
+
+templ demoMoney() {
+	<div class="overflow-x-auto rounded-box border border-base-300">
+		<table class="table table-sm">
+			<thead><tr><th>Cas</th><th class="text-right">Rendu</th></tr></thead>
+			<tbody>
+				for _, row := range []struct {
+					Label string
+					Props ui.MoneyProps
+				}{
+					{"montant courant", ui.MoneyProps{Cents: 128450, Currency: "EUR"}},
+					{"centimes seuls", ui.MoneyProps{Cents: 5, Currency: "EUR"}},
+					{"grand nombre", ui.MoneyProps{Cents: 123456789, Currency: "EUR"}},
+					{"remboursement", ui.MoneyProps{Cents: -4500, Currency: "EUR", Tone: "error"}},
+					{"variation signée", ui.MoneyProps{Cents: 2300, Currency: "EUR", Tone: "success", Sign: true}},
+					{"devise sans décimale", ui.MoneyProps{Cents: 1000, Currency: "JPY"}},
+					{"devise à trois décimales", ui.MoneyProps{Cents: 1234, Currency: "KWD"}},
+				} {
+					<tr>
+						<td class="opacity-60">{ row.Label }</td>
+						<td class="text-right">@ui.Money(row.Props)</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ demoLineItems() {
+	@ui.LineItemsTable(ui.LineItemsProps{
+		Currency: "EUR",
+		Caption:  "Commande #4192 · 25 août 2026",
+		Items: []ui.LineItem{
+			{Label: "Carnet A5", Detail: "Réf. CAR-A5-NOIR", Quantity: 2, UnitCents: 1200, TotalCents: 2400},
+			{Label: "Stylo plume", Detail: "Réf. STY-PL-01", Quantity: 1, UnitCents: 4500, TotalCents: 4500},
+			{Label: "Encre bleue", Detail: "Réf. ENC-BL-30", Quantity: 3, UnitCents: 850, TotalCents: 2550},
+		},
+		Adjustments: []ui.Adjustment{
+			{Label: "Remise fidélité", Cents: -945, Note: "10 %"},
+			{Label: "Livraison", Cents: 590, Note: "Colissimo"},
+			{Label: "TVA", Cents: 1819, Note: "20 %"},
+		},
+		TotalCents: 10914,
+	})
+}
+
+templ demoLineItemsMismatch() {
+	@ui.LineItemsTable(ui.LineItemsProps{
+		Currency: "EUR",
+		Items: []ui.LineItem{
+			{Label: "Carnet A5", Quantity: 2, UnitCents: 1200, TotalCents: 2400},
+		},
+		TotalCents: 9900,
+	})
+}

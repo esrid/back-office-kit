@@ -162,6 +162,28 @@ Les classes de couleur sont écrites **en toutes lettres** dans `ui/tone.go`,
 jamais concaténées. `"badge-" + tone` compile, mais le scanner Tailwind ne le
 voit pas et le CSS manque à l'exécution.
 
+## Deux paquets, pas un
+
+`ui` est le back-office : dense, authentifié, piloté par la donnée. `ui/marketing`
+est la page publique : référencement, images, conversion. Ils ne partagent ni les
+contraintes ni les règles, d'où la séparation.
+
+```go
+import "github.com/esrid/back-office-kit/ui"
+import "github.com/esrid/back-office-kit/ui/marketing"
+```
+
+Trois règles s'appliquent dans `marketing` et pas dans `ui` :
+
+- **Un seul `<h1>` par page**, rendu par `Hero`. Les autres sections ouvrent en
+  `<h2>`. Une hiérarchie de titres fausse ment aux moteurs et aux lecteurs
+  d'écran sans que rien ne se voie à l'œil.
+- **Toute image porte `alt`, `width` et `height`.** Sans `alt` elle ne rend pas
+  du tout, plutôt que de partir cassée ; sans dimensions la page saute au
+  chargement.
+- **Aucun JavaScript.** La FAQ est un `<details>`, ce qui laisse la recherche du
+  navigateur atteindre les réponses fermées.
+
 ## Licence
 
 MIT

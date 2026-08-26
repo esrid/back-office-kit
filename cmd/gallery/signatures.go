@@ -15,16 +15,23 @@ import (
 // Read from source rather than typed into each Section: a signature copied by
 // hand drifts the first time a parameter changes, and documentation that lies
 // is worse than none.
-func signatures(dir string) map[string]string {
+func signatures(dirs ...string) map[string]string {
+	out := map[string]string{}
+	cfg := &printer.Config{Mode: printer.RawFormat}
+	for _, dir := range dirs {
+		collect(out, cfg, dir)
+	}
+	return out
+}
+
+func collect(out map[string]string, cfg *printer.Config, dir string) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, nil, 0)
 	if err != nil {
 		log.Println("signatures:", err)
-		return nil
+		return
 	}
 
-	out := map[string]string{}
-	cfg := &printer.Config{Mode: printer.RawFormat}
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Files {
 			for _, decl := range file.Decls {
@@ -43,7 +50,6 @@ func signatures(dir string) map[string]string {
 			}
 		}
 	}
-	return out
 }
 
 // signatureFor picks the signature for a section, matching the first component

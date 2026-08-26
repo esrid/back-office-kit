@@ -1,0 +1,233 @@
+package marketing
+
+import "strconv"
+
+type Feature struct {
+	Title       string
+	Description string
+	Icon        string // trusted inline SVG, supplied by the application
+}
+
+// FeatureGrid opens at <h2>: Hero already owns the page's <h1>.
+templ FeatureGrid(title string, subtitle string, features []Feature) {
+	<section class="px-4 py-16 border-t border-base-300">
+		<div class="mx-auto max-w-6xl flex flex-col gap-10">
+			@sectionHead(title, subtitle)
+			<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+				for _, f := range features {
+					<div class="flex flex-col gap-2">
+						if f.Icon != "" {
+							<span class="text-primary">@raw(f.Icon)</span>
+						}
+						<h3 class="font-semibold">{ f.Title }</h3>
+						<p class="text-sm opacity-70 text-pretty">{ f.Description }</p>
+					</div>
+				}
+			</div>
+		</div>
+	</section>
+}
+
+templ sectionHead(title string, subtitle string) {
+	if title != "" {
+		<div class="max-w-2xl flex flex-col gap-3">
+			<h2 class="text-3xl font-semibold tracking-tight text-balance">{ title }</h2>
+			if subtitle != "" {
+				<p class="opacity-70 text-pretty">{ subtitle }</p>
+			}
+		</div>
+	}
+}
+
+templ raw(svg string) {
+	@templ.Raw(svg)
+}
+
+type Plan struct {
+	Name        string
+	Price       string // "29 €" -- a marketing price, not a computed amount
+	Period      string // "par mois"
+	Description string
+	Features    []string
+	Action      Action
+	Highlighted bool
+	Badge       string
+}
+
+// PricingTable renders plans as an ordered list: their order carries meaning.
+templ PricingTable(title string, subtitle string, plans []Plan) {
+	<section class="px-4 py-16 border-t border-base-300">
+		<div class="mx-auto max-w-6xl flex flex-col gap-10">
+			@sectionHead(title, subtitle)
+			<ol class="grid gap-6 md:grid-cols-3 items-start">
+				for _, plan := range plans {
+					<li class={ "card bg-base-100 h-full", templ.KV("border-2 border-primary", plan.Highlighted), templ.KV("card-border", !plan.Highlighted) }>
+						<div class="card-body gap-4">
+							<div class="flex items-center justify-between gap-2">
+								<h3 class="font-semibold">{ plan.Name }</h3>
+								if plan.Badge != "" {
+									<span class="badge badge-primary badge-sm">{ plan.Badge }</span>
+								}
+							</div>
+							<p>
+								<span class="text-3xl font-semibold tabular-nums">{ plan.Price }</span>
+								if plan.Period != "" {
+									<span class="text-sm opacity-55"> { plan.Period }</span>
+								}
+							</p>
+							if plan.Description != "" {
+								<p class="text-sm opacity-70">{ plan.Description }</p>
+							}
+							<ul class="flex flex-col gap-1.5 text-sm">
+								for _, f := range plan.Features {
+									<li class="flex gap-2"><span class="text-success" aria-hidden="true">✓</span><span>{ f }</span></li>
+								}
+							</ul>
+							if plan.Action.Label != "" {
+								<a
+									href={ templ.SafeURL(plan.Action.Href) }
+									class={ "btn mt-auto", templ.KV("btn-primary", plan.Highlighted), templ.KV("btn-ghost", !plan.Highlighted) }
+								>{ plan.Action.Label }</a>
+							}
+						</div>
+					</li>
+				}
+			</ol>
+		</div>
+	</section>
+}
+
+type Quote struct {
+	Text    string
+	Author  string
+	Role    string
+	Avatar  Image
+}
+
+// TestimonialGrid uses <blockquote> and <cite>: the attribution is data, not
+// decoration.
+templ TestimonialGrid(title string, quotes []Quote) {
+	<section class="px-4 py-16 border-t border-base-300">
+		<div class="mx-auto max-w-6xl flex flex-col gap-10">
+			@sectionHead(title, "")
+			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+				for _, q := range quotes {
+					<figure class="card card-border bg-base-100 h-full">
+						<div class="card-body gap-4">
+							<blockquote class="text-sm leading-relaxed text-pretty">{ q.Text }</blockquote>
+							<figcaption class="flex items-center gap-3 mt-auto">
+								if q.Avatar.Src != "" {
+									<span class="avatar">
+										<span class="w-9 rounded-full overflow-hidden block">
+											@Picture(q.Avatar, "w-9 h-9 object-cover")
+										</span>
+									</span>
+								}
+								<span class="text-sm">
+									<cite class="not-italic font-medium block">{ q.Author }</cite>
+									if q.Role != "" {
+										<span class="opacity-55 text-xs">{ q.Role }</span>
+									}
+								</span>
+							</figcaption>
+						</div>
+					</figure>
+				}
+			</div>
+		</div>
+	</section>
+}
+
+type QA struct {
+	Question string
+	Answer   string
+}
+
+// FAQ is a <details> accordion: no JavaScript, and the browser's own find-in-page
+// can reach closed answers. The shared [name] makes it exclusive where supported,
+// and simply allows several open answers where it is not.
+templ FAQ(title string, items []QA) {
+	<section class="px-4 py-16 border-t border-base-300">
+		<div class="mx-auto max-w-3xl flex flex-col gap-8">
+			@sectionHead(title, "")
+			<div class="flex flex-col gap-2">
+				for i, item := range items {
+					<details name="faq" class="collapse collapse-plus border border-base-300 rounded-box bg-base-100">
+						<summary class="collapse-title font-medium" id={ "faq-" + strconv.Itoa(i) }>{ item.Question }</summary>
+						<div class="collapse-content text-sm opacity-75">
+							<p class="text-pretty">{ item.Answer }</p>
+						</div>
+					</details>
+				}
+			</div>
+		</div>
+	</section>
+}
+
+// CTASection is the last thing before the footer.
+templ CTASection(title string, subtitle string, actions []Action, note string) {
+	<section class="px-4 py-20 border-t border-base-300 bg-base-200">
+		<div class="mx-auto max-w-3xl flex flex-col items-center gap-5 text-center">
+			<h2 class="text-3xl font-semibold tracking-tight text-balance">{ title }</h2>
+			if subtitle != "" {
+				<p class="opacity-70 text-pretty max-w-xl">{ subtitle }</p>
+			}
+			<div class="flex flex-wrap items-center justify-center gap-3">
+				@actionButtons(actions)
+			</div>
+			if note != "" {
+				<p class="text-sm opacity-55">{ note }</p>
+			}
+		</div>
+	</section>
+}
+
+// LogoCloud shows who already trusts the product. Each logo keeps its alt text:
+// a wall of undescribed images says nothing to a screen reader.
+templ LogoCloud(label string, logos []Image) {
+	<section class="px-4 py-12 border-t border-base-300">
+		<div class="mx-auto max-w-6xl flex flex-col items-center gap-6">
+			if label != "" {
+				<p class="text-xs uppercase tracking-wider opacity-55">{ label }</p>
+			}
+			<ul class="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
+				for _, logo := range logos {
+					<li class="opacity-60">
+						@Picture(logo, "h-7 w-auto")
+					</li>
+				}
+			</ul>
+		</div>
+	</section>
+}
+
+type FooterColumn struct {
+	Title string
+	Links []Action
+}
+
+templ MarketingFooter(product string, tagline string, columns []FooterColumn, legal string) {
+	<footer class="px-4 py-14 border-t border-base-300">
+		<div class="mx-auto max-w-6xl grid gap-10 md:grid-cols-[1.5fr_repeat(auto-fit,minmax(8rem,1fr))]">
+			<div class="flex flex-col gap-2 max-w-xs">
+				<p class="font-semibold">{ product }</p>
+				if tagline != "" {
+					<p class="text-sm opacity-60 text-pretty">{ tagline }</p>
+				}
+			</div>
+			for _, col := range columns {
+				<nav class="flex flex-col gap-2" aria-label={ col.Title }>
+					<p class="text-xs uppercase tracking-wider opacity-50">{ col.Title }</p>
+					for _, link := range col.Links {
+						<a href={ templ.SafeURL(link.Href) } class="text-sm opacity-75 hover:opacity-100">{ link.Label }</a>
+					}
+				</nav>
+			}
+		</div>
+		if legal != "" {
+			<div class="mx-auto max-w-6xl mt-10 pt-6 border-t border-base-300">
+				<p class="text-xs opacity-50">{ legal }</p>
+			</div>
+		}
+	</footer>
+}

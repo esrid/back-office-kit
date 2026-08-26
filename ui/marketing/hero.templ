@@ -1,0 +1,79 @@
+package marketing
+
+type Action struct {
+	Label string
+	Href  string
+	Primary bool
+}
+
+// Image carries the attributes that keep a page from jumping while it loads.
+// Width and Height are intrinsic pixels, not a CSS size.
+type Image struct {
+	Src    string
+	Alt    string
+	Width  int
+	Height int
+}
+
+type HeroProps struct {
+	Eyebrow  string
+	Title    string
+	Subtitle string
+	Actions  []Action
+	Note     string // reassurance under the buttons: "Sans carte bancaire"
+	Visual   Image
+}
+
+// Hero renders the page's only <h1>.
+templ Hero(p HeroProps) {
+	<section class="px-4 py-16 sm:py-24">
+		<div class="mx-auto max-w-6xl grid gap-10 lg:grid-cols-2 lg:items-center">
+			<div class="flex flex-col gap-5 max-w-xl">
+				if p.Eyebrow != "" {
+					<p class="text-sm font-medium text-primary tracking-wide uppercase">{ p.Eyebrow }</p>
+				}
+				<h1 class="text-4xl sm:text-5xl font-semibold tracking-tight text-balance">{ p.Title }</h1>
+				if p.Subtitle != "" {
+					<p class="text-lg opacity-70 text-pretty">{ p.Subtitle }</p>
+				}
+				if len(p.Actions) > 0 {
+					<div class="flex flex-wrap items-center gap-3">
+						@actionButtons(p.Actions)
+					</div>
+				}
+				if p.Note != "" {
+					<p class="text-sm opacity-55">{ p.Note }</p>
+				}
+			</div>
+			if p.Visual.Src != "" {
+				@Picture(p.Visual, "rounded-box border border-base-300 w-full h-auto")
+			}
+		</div>
+	</section>
+}
+
+// Picture refuses to render without alt text: an image nobody can describe is
+// an image that fails for search engines and screen readers alike.
+templ Picture(img Image, class string) {
+	if img.Src != "" && img.Alt != "" {
+		<img
+			src={ img.Src }
+			alt={ img.Alt }
+			width={ intAttr(img.Width) }
+			height={ intAttr(img.Height) }
+			loading="lazy"
+			decoding="async"
+			class={ class }
+		/>
+	}
+}
+
+templ actionButtons(actions []Action) {
+	for _, a := range actions {
+		if a.Primary {
+			<a href={ templ.SafeURL(a.Href) } class="btn btn-primary">{ a.Label }</a>
+		} else {
+			<a href={ templ.SafeURL(a.Href) } class="btn btn-ghost">{ a.Label }</a>
+		}
+	}
+}

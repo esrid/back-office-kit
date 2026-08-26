@@ -1,0 +1,130 @@
+package ui
+
+import "strconv"
+
+// LineItem is one billed row. TotalCents comes from the server, never from a
+// multiplication done here: per-line discounts, proration and rounding rules
+// live in the billing code, not in a template.
+type LineItem struct {
+	Label      string
+	Detail     string
+	Quantity   int
+	UnitCents  int64
+	TotalCents int64
+}
+
+// Adjustment is anything applied after the lines: discount (negative),
+// shipping, tax.
+type Adjustment struct {
+	Label string
+	Cents int64
+	Note  string
+}
+
+type LineItemsProps struct {
+	Currency    string
+	Items       []LineItem
+	Adjustments []Adjustment
+	TotalCents  int64
+	Caption     string
+}
+
+// lineItemsSum adds what is displayed. Used only to check the server's total,
+// never to replace it.
+func lineItemsSum(p LineItemsProps) int64 {
+	var sum int64
+	for _, it := range p.Items {
+		sum += it.TotalCents
+	}
+	for _, a := range p.Adjustments {
+		sum += a.Cents
+	}
+	return sum
+}
+
+// LineItemsTable shows an invoice or an order.
+//
+// The displayed total is the server's. If the rows do not add up to it, the
+// discrepancy is shown rather than hidden: silently printing a total that
+// contradicts its own lines is how a customer gets charged the wrong amount.
+templ LineItemsTable(p LineItemsProps) {
+	{{ sum := lineItemsSum(p) }}
+	<div class="flex flex-col gap-3">
+		if sum != p.TotalCents {
+			{{ sumText := FormatMoney(sum, p.Currency) }}
+			{{ totalText := FormatMoney(p.TotalCents, p.Currency) }}
+			{{ gapText := FormatMoney(p.TotalCents-sum, p.Currency) }}
+			<div role="alert" class="alert alert-warning">
+				<span>
+					Les lignes totalisent { sumText }, le total annoncé est { totalText }. Écart de { gapText }.
+				</span>
+			</div>
+		}
+		<div class="overflow-x-auto rounded-box border border-base-300">
+			<table class="table table-sm">
+				if p.Caption != "" {
+					<caption class="text-left px-4 pt-3 pb-1 text-sm opacity-60">{ p.Caption }</caption>
+				}
+				<thead>
+					<tr>
+						<th>Article</th>
+						<th class="text-right">Qté</th>
+						<th class="text-right">Prix unitaire</th>
+						<th class="text-right">Total</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, it := range p.Items {
+						<tr>
+							<td>
+								<span class="font-medium">{ it.Label }</span>
+								if it.Detail != "" {
+									<span class="block text-xs opacity-55">{ it.Detail }</span>
+								}
+							</td>
+							<td class="text-right tabular-nums">{ strconv.Itoa(it.Quantity) }</td>
+							<td class="text-right">
+								{{ unit := MoneyProps{Cents: it.UnitCents, Currency: p.Currency} }}
+								@Money(unit)
+							</td>
+							<td class="text-right">
+								{{ total := MoneyProps{Cents: it.TotalCents, Currency: p.Currency} }}
+								@Money(total)
+							</td>
+						</tr>
+					}
+				</tbody>
+				<tfoot class="text-base-content">
+					for _, a := range p.Adjustments {
+						<tr>
+							<td colspan="3" class="text-right font-normal">
+								{ a.Label }
+								if a.Note != "" {
+									<span class="text-xs opacity-55"> · { a.Note }</span>
+								}
+							</td>
+							<td class="text-right">
+								{{ amount := MoneyProps{Cents: a.Cents, Currency: p.Currency, Tone: adjustmentTone(a.Cents)} }}
+								@Money(amount)
+							</td>
+						</tr>
+					}
+					<tr class="border-t-2 border-base-300">
+						<td colspan="3" class="text-right font-semibold">Total</td>
+						<td class="text-right font-semibold">
+							{{ grand := MoneyProps{Cents: p.TotalCents, Currency: p.Currency} }}
+							@Money(grand)
+						</td>
+					</tr>
+				</tfoot>
+			</table>
+		</div>
+	</div>
+}
+
+func adjustmentTone(cents int64) string {
+	if cents < 0 {
+		return "success" // a discount is good news for the customer
+	}
+	return ""
+}
