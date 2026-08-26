@@ -144,6 +144,15 @@ stabilisation, et trancher au pixel en cas de doute.
 - La couverture de tests porte sur la logique pure (URL, bornages, argent,
   dates). Le balisage est vérifié par quelques assertions de rendu et à l'œil.
 
+## Décisions closes — ne pas les rouvrir
+
+**Les libellés sont en français, en dur, et c'est un choix.** Pas une dette à
+combler. Le rattrapage resterait bon marché le jour où il servirait — une
+recherche par `context` ne change aucune signature de composant — donc rien ne
+justifie de le faire d'avance. `formatAddress` commute déjà sur `CountryISO`,
+là où le français aurait produit des étiquettes illisibles par un transporteur ;
+c'est le seul endroit où ça comptait.
+
 ## Ce qu'il ne faut pas construire ici
 
 Une boutique publique — panier, tunnel de paiement, galerie produit — est un
