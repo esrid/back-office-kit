@@ -1,0 +1,33 @@
+package main
+
+import "github.com/esrid/back-office-kit/ui"
+
+templ AgentPage(v AgentView) {
+	@Layout("Assistant") {
+		@ui.Shell("Acme Admin", nav(), "/agent", v.Operator, nil) {
+			@ui.AgentWorkspace("Assistant opérations", "Conversation, décision et exécution dans un même espace", agentSidebar(v)) {
+				@ui.AgentThread(ui.AgentThreadProps{
+					ID: "agent-thread", Title: "Conversation", Busy: v.Busy, PollSource: "/agent",
+				}) {
+					for _, m := range v.Messages {
+						@ui.AgentMessage(m.Role, m.Author, m.Time) {
+							{ m.Text }
+						}
+					}
+				}
+				<div id="agent-suggestions">
+					@ui.AgentSuggestionSet("Suites possibles", v.Suggestions, "#agent-suggestions")
+				</div>
+				@ui.AgentComposer(ui.AgentComposerProps{
+					ID: "agent-prompt", Action: "/agent/messages", Name: "prompt",
+					Placeholder: "Demandez une modification ou une nouvelle analyse…",
+					Contexts:    v.Contexts,
+				})
+			}
+		}
+	}
+}
+
+templ agentSidebar(v AgentView) {
+	@ui.AgentToolRunTimeline("agent-runs", v.Runs, v.Busy, "/agent")
+}

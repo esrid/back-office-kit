@@ -39,7 +39,9 @@ ne s'ouvre jamais comme tiroir. Gardé par `TestNoComponentFoldsTheLayerMode`.
 compile mais le scanner Tailwind ne le voit pas et le CSS manque à l'exécution.
 Table littérale dans `ui/tone.go`.
 
-**Un fragment qui porte de l'état a besoin de `[up-history="true"]`.** Unpoly ne
+**Un fragment qui porte de l'état a besoin de `[up-history="true"]`.** C'est le
+défaut le plus fréquent du dépôt : cinq composants l'avaient, tous trouvés en
+exécutant, aucun en relisant. Unpoly ne
 change l'URL que lorsqu'une cible principale est rendue — « This is to prevent
 location changes when rendering a minor fragment ». Un tableau ciblé par `#users`
 n'en est pas une : sans cet attribut le tri s'applique sans apparaître dans l'URL
@@ -131,8 +133,9 @@ stabilisation, et trancher au pixel en cas de doute.
 - `btn-primary` du thème daisyUI sombre mesure **4,13:1** (AA demande 4,5). Le
   thème clair donne 6,75. Ce n'est pas le kit : un thème personnalisé le corrige
   en ajustant `--color-primary-content`.
-- Les Tiers 4, 5, 6 et 8 n'ont jamais été branchés à un serveur. `example/`
-  n'exerce que sept composants sur soixante-seize.
+- `example/` couvre six écrans : utilisateurs, dossiers, approbations, revue,
+  assistant, politique. Le Tier 8 (sécurité) et la plupart du Tier 3 n'ont
+  toujours aucun écran.
 - La couverture de tests porte sur la logique pure (URL, bornages, argent,
   dates). Le balisage est vérifié par quelques assertions de rendu et à l'œil.
 

@@ -119,6 +119,10 @@ func registerRecords(mux *http.ServeMux, operator string) {
 		}))
 	})
 
+	registerReview(mux, operator, approvals)
+	registerAgent(mux, operator)
+	registerPolicy(mux, operator)
+
 	mux.HandleFunc("GET /approvals", func(w http.ResponseWriter, r *http.Request) {
 		render(r.Context(), w, ApprovalsPage(ApprovalsView{
 			Operator: operator,

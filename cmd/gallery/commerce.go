@@ -32,6 +32,29 @@ ui.FormatMoney(-4500, "EUR")   // "−45,00 €"`,
 			Snippet: `// mêmes props, mais TotalCents ne correspond pas aux lignes`,
 			Note:    "Afficher en silence un total qui contredit son propre détail, c'est facturer le mauvais montant sans que personne ne le voie. L'écart est nommé et chiffré, et le total du serveur reste affiché — le composant n'en invente jamais un autre. Un test couvre les deux cas.",
 		},
+		{
+			Group: g, ID: "address", Title: "AddressBlock",
+			Purpose: "Une adresse dans l'ordre attendu par son pays de destination.",
+			Uses:    []string{"address"},
+			Demo:    demoAddress(),
+			Snippet: `@ui.AddressBlock("Livraison", ui.Address{
+    Name: o.Name, Line1: o.Line1, PostalCode: o.Zip, City: o.City,
+    Country: o.Country, CountryISO: o.CountryISO,
+})`,
+			Note: "L'ordre des lignes change selon le pays : code postal avant la ville en Europe continentale, « ville, région code » aux États-Unis, code postal sur sa propre ligne après la ville au Royaume-Uni. Écrire l'adresse à la main dans un template donne des étiquettes que le transporteur ne sait pas lire. Les parties vides sont supprimées plutôt que laissées en lignes blanches.",
+		},
+		{
+			Group: g, ID: "refund", Title: "RefundForm",
+			Purpose: "Rembourser tout ou partie, borné par ce qui reste réellement remboursable.",
+			Uses:    []string{"Money", "fieldset"},
+			Demo:    demoRefund(),
+			Snippet: `@ui.RefundForm(ui.RefundFormProps{
+    OrderID: o.ID, Currency: "EUR",
+    TotalCents: o.TotalCents, AlreadyRefundedCents: o.RefundedCents,
+    Action: "/orders/" + o.ID + "/refund", Reasons: motifs,
+})`,
+			Note: "AlreadyRefundedCents vient du serveur : le navigateur ne décide jamais de ce qui reste, et un second onglet ne doit pas pouvoir rembourser deux fois la même somme. Le champ propose le reste, pas le total, et si le serveur annonce plus remboursé que facturé le formulaire affiche zéro au lieu d'un montant négatif. Une commande intégralement remboursée n'offre aucun champ — testé.",
+		},
 	}
 }
 

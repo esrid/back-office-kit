@@ -1,0 +1,17 @@
+package main
+
+import "github.com/esrid/back-office-kit/ui"
+
+templ PolicyPage(v PolicyView) {
+	@Layout("Simulateur de politique") {
+		@ui.Shell("Acme Admin", nav(), "/policy", v.Operator, nil) {
+			@ui.PageHeader(ui.PageProps{
+				Title:    "Simulateur de politique",
+				Subtitle: "Répondre à « pourquoi cet accès est-il refusé ? » sans lire le code",
+			})
+			<div class="mt-5 max-w-3xl">
+				@ui.PolicySimulator(v.Props)
+			</div>
+		}
+	}
+}

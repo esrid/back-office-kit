@@ -1,0 +1,41 @@
+package main
+
+import "github.com/esrid/back-office-kit/ui"
+
+templ demoAddress() {
+	<div class="grid gap-6 sm:grid-cols-3">
+		@ui.AddressBlock("France", ui.Address{
+			Name: "Amélie Rousseau", Line1: "12 rue des Lilas", Line2: "Bâtiment C",
+			PostalCode: "69003", City: "Lyon", Country: "France", CountryISO: "FR",
+		})
+		@ui.AddressBlock("États-Unis", ui.Address{
+			Name: "Jane Doe", Company: "Acme Inc.", Line1: "1 Market St", Line2: "Suite 400",
+			City: "San Francisco", Region: "CA", PostalCode: "94105",
+			Country: "United States", CountryISO: "US",
+		})
+		@ui.AddressBlock("Royaume-Uni", ui.Address{
+			Name: "John Smith", Line1: "10 Downing Street",
+			City: "London", PostalCode: "SW1A 2AA",
+			Country: "United Kingdom", CountryISO: "GB",
+		})
+	</div>
+}
+
+templ demoRefund() {
+	<div class="grid gap-6 md:grid-cols-2 items-start">
+		@ui.RefundForm(ui.RefundFormProps{
+			OrderID: "4192", Currency: "EUR", TotalCents: 10914, AlreadyRefundedCents: 2500,
+			Action: "/orders/4192/refund",
+			Reasons: []ui.Option{
+				{Value: "damaged", Label: "Article endommagé"},
+				{Value: "late", Label: "Livraison hors délai"},
+				{Value: "duplicate", Label: "Commande en double"},
+				{Value: "goodwill", Label: "Geste commercial"},
+			},
+		})
+		@ui.RefundForm(ui.RefundFormProps{
+			OrderID: "4193", Currency: "EUR", TotalCents: 4500, AlreadyRefundedCents: 4500,
+			Action: "/orders/4193/refund",
+		})
+	</div>
+}

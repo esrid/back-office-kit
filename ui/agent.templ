@@ -158,6 +158,10 @@ type AgentSuggestion struct {
 
 // AgentSuggestionSet offers bounded next actions instead of forcing another
 // free-form prompt.
+//
+// The links carry [up-history]: choosing a suggestion is a navigation, and a
+// conversation whose angle cannot be shared or reloaded loses exactly what an
+// operator wants to hand to a colleague. Verified against a running server.
 templ AgentSuggestionSet(title string, suggestions []AgentSuggestion, target string) {
 	<section class="flex flex-col gap-2" aria-label={ title }>
 		<h3 class="text-sm font-medium">{ title }</h3>
@@ -168,6 +172,7 @@ templ AgentSuggestionSet(title string, suggestions []AgentSuggestion, target str
 					up-follow
 					if target != "" {
 						up-target={ target }
+						up-history="true"
 					}
 					class="group rounded-box border border-base-300 p-3 hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
 				>

@@ -46,6 +46,8 @@ func nav() []ui.NavItem {
 		{Label: "Utilisateurs", Href: "/"},
 		{Label: "Dossiers", Href: "/records"},
 		{Label: "Approbations", Href: "/approvals"},
+		{Label: "Assistant", Href: "/agent"},
+		{Label: "Politique", Href: "/policy"},
 		{Label: "Réglages", Href: "/settings"},
 	}
 }

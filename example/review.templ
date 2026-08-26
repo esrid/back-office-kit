@@ -1,0 +1,29 @@
+package main
+
+import "github.com/esrid/back-office-kit/ui"
+
+// ReviewPage is the surface an ApprovalInbox item links to. It reuses the id
+// the inbox targets, so Unpoly swaps one for the other in place.
+templ ReviewPage(v ReviewView) {
+	@Layout("Revue — " + v.Request.Title) {
+		@ui.Shell("Acme Admin", nav(), "/approvals", v.Operator, nil) {
+			@ui.PageHeader(ui.PageProps{
+				Crumbs: []ui.Crumb{{Label: "Approbations", Href: "/approvals"}, {Label: v.Request.Title}},
+				Title:  v.Request.Title,
+			})
+			<div id="approvals" class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] items-start">
+				@ui.ActionPlan(v.Plan)
+				@ui.ApprovalCard(v.Approval, reviewImpact())
+			</div>
+		}
+	}
+}
+
+templ reviewImpact() {
+	@ui.AgentImpactSummary([]ui.AgentImpactItem{
+		{Label: "Données consultées", Value: "200 comptes et factures", Tone: "info"},
+		{Label: "Modifications", Value: "12 suspensions réversibles", Tone: "warning"},
+		{Label: "Effet externe", Value: "12 e-mails envoyés", Tone: "error"},
+		{Label: "Coût estimé", Value: "0,08 €"},
+	})
+}

@@ -40,6 +40,10 @@ func policySimulatorTitle(title string) string {
 
 // PolicySimulator sends a read-only GET query to the backend policy engine.
 // Its answer is explanatory and never grants or persists access.
+//
+// The GET form carries [up-history]: a simulation nobody can share by link
+// loses the point of a simulator -- "here is why your access is denied" has to
+// survive a copy-paste. Verified against a running server.
 templ PolicySimulator(p PolicySimulatorProps) {
 	<section id={ p.ID } class="card card-border bg-base-100" aria-labelledby={ p.ID + "-title" }>
 		<div class="card-body p-4 gap-4">
@@ -55,6 +59,7 @@ templ PolicySimulator(p PolicySimulatorProps) {
 				up-submit
 				if p.Target != "" {
 					up-target={ p.Target }
+					up-history="true"
 				}
 				class="grid gap-3 md:grid-cols-3"
 			>

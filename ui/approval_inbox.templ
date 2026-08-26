@@ -80,6 +80,11 @@ func approvalReviewLabel(status ApprovalStatus) string {
 
 // ApprovalInbox presents durable backend approval requests. It does not
 // approve a plan itself; each item links to its exact review surface.
+//
+// The review links carry [up-history]: opening a review is a navigation, and
+// without it the review swaps in but the address stays on the inbox -- the
+// review cannot be shared, a reload loses it, and the back button does not
+// return to the list. Verified against a running server.
 templ ApprovalInbox(p ApprovalInboxProps) {
 	<section
 		id={ p.ID }
@@ -153,6 +158,7 @@ templ ApprovalInbox(p ApprovalInboxProps) {
 											up-follow
 											if p.Target != "" {
 												up-target={ p.Target }
+												up-history="true"
 											}
 											class="btn btn-sm"
 										>{ approvalReviewLabel(item.Status) }</a>

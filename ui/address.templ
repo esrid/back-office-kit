@@ -1,0 +1,76 @@
+package ui
+
+import "strings"
+
+// Address holds the parts. Assembling them into lines is the component's job,
+// because the order changes by country and getting it wrong prints a label the
+// carrier cannot read.
+type Address struct {
+	Name       string
+	Company    string
+	Line1      string
+	Line2      string
+	PostalCode string
+	City       string
+	Region     string // state, province, county
+	Country    string // display name
+	CountryISO string // ISO 3166-1 alpha-2, decides the layout
+}
+
+// formatAddress returns the lines in the order the destination country expects.
+// Pure. Empty parts are dropped rather than leaving blank lines.
+func formatAddress(a Address) []string {
+	var locality string
+	switch strings.ToUpper(a.CountryISO) {
+	case "US", "CA", "AU":
+		// city, region postal
+		locality = joinNonEmpty(", ", a.City, joinNonEmpty(" ", a.Region, a.PostalCode))
+	case "GB", "IE":
+		// city on its own line, postcode below
+		locality = a.City
+	default:
+		// postal then city, the continental European order
+		locality = joinNonEmpty(" ", a.PostalCode, a.City)
+	}
+
+	lines := []string{a.Name, a.Company, a.Line1, a.Line2, locality}
+	if iso := strings.ToUpper(a.CountryISO); iso == "GB" || iso == "IE" {
+		lines = append(lines, a.PostalCode)
+	}
+	lines = append(lines, a.Country)
+
+	out := make([]string, 0, len(lines))
+	for _, l := range lines {
+		if strings.TrimSpace(l) != "" {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+func joinNonEmpty(sep string, parts ...string) string {
+	kept := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if strings.TrimSpace(p) != "" {
+			kept = append(kept, p)
+		}
+	}
+	return strings.Join(kept, sep)
+}
+
+// AddressBlock renders a postal address as an <address> element.
+templ AddressBlock(label string, a Address) {
+	<div class="flex flex-col gap-1">
+		if label != "" {
+			<p class="text-xs uppercase tracking-wider opacity-50">{ label }</p>
+		}
+		<address class="not-italic text-sm leading-relaxed">
+			for i, line := range formatAddress(a) {
+				if i > 0 {
+					<br/>
+				}
+				{ line }
+			}
+		</address>
+	</div>
+}
