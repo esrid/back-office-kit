@@ -122,7 +122,11 @@ grep -c '\.badge-success' dist/app.css     # 0 = la classe manquera à l'exécut
 `up-validate`, `up-confirm`, `up-dismiss`, `up-history` sont vérifiés. Un
 attribut inventé ne produit aucune erreur.
 
-**4. Le contraste se mesure, il ne s'estime pas.** Sonde canvas dans la page,
+**4. Le contraste se mesure, il ne s'estime pas.** Une sonde in-page lit la
+`color` avec un thème de retard juste après un changement de `data-theme`,
+alors que `background-color` suit tout de suite — d'où des ratios de 1,01 sur
+une page parfaitement lisible. Mesurer sur un **élément neuf** créé après le
+changement, ou recharger la page dans le thème visé. Sonde canvas dans la page,
 avec un contrôle de vraisemblance noir sur blanc qui doit donner 21. Trois de mes
 mesures ont été fausses avant d'être justes : alpha ignoré, `oklch()` mal parsé,
 puis style périmé lu juste après un changement de thème. Toujours relire jusqu'à
@@ -130,9 +134,10 @@ stabilisation, et trancher au pixel en cas de doute.
 
 ## Limites connues
 
-- `btn-primary` du thème daisyUI sombre mesure **4,13:1** (AA demande 4,5). Le
-  thème clair donne 6,75. Ce n'est pas le kit : un thème personnalisé le corrige
-  en ajustant `--color-primary-content`.
+- Le thème sombre de daisyUI donnait **4,13:1** sur `btn-primary`. Corrigé dans
+  `assets/app.css` en assombrissant `--color-primary` à `oklch(50% …)` : 5,85:1,
+  clair inchangé à 6,75. C'est l'exemple de ce que « changer le style » veut
+  dire ici — deux sélecteurs, aucun composant touché.
 - `example/` couvre six écrans : utilisateurs, dossiers, approbations, revue,
   assistant, politique. Le Tier 8 (sécurité) et la plupart du Tier 3 n'ont
   toujours aucun écran.

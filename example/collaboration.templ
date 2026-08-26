@@ -1,0 +1,64 @@
+package main
+
+import (
+	"time"
+
+	"github.com/esrid/back-office-kit/ui"
+)
+
+templ CollaborationPage(v CollaborationView) {
+	@Layout("Collaboration — Acme Caraïbes") {
+		@ui.Shell("Acme Admin", nav(), "/collaboration", v.Operator, v.Flashes) {
+			@ui.DetailPage(ui.PageProps{
+				Crumbs:   []ui.Crumb{{Label: "Opportunités", Href: "/collaboration"}, {Label: "Acme Caraïbes"}},
+				Title:    "Acme Caraïbes",
+				Subtitle: "Opportunité · Proposition · 24 000 €",
+				Actions:  collaborationWatch(v),
+			}, collaborationAside(v)) {
+				@ui.Panel("Contexte", nil) {
+					@ui.DetailList([]ui.Option{
+						{Label: "Entreprise", Value: "Acme Caraïbes"},
+						{Label: "Contact", Value: "Sophie Laurent"},
+						{Label: "Étape", Value: "Proposition"},
+						{Label: "Valeur", Value: "24 000 €"},
+					})
+				}
+				@ui.TaskList(ui.TaskListProps{
+					ID: "collaboration-tasks", Title: "Prochaines actions", Action: "/collaboration/tasks",
+					Version: v.TaskVersion, Items: v.Tasks, Now: v.Now, Location: v.Location, Error: v.TaskError,
+				})
+				@ui.ActivityFeed(ui.ActivityFeedProps{
+					ID: "collaboration-activity", Title: "Activité", Items: v.Activity,
+				})
+				@collaborationCommentThread(v)
+			}
+		}
+	}
+}
+
+templ collaborationWatch(v CollaborationView) {
+	@ui.WatchButton(ui.WatchButtonProps{
+		ID: "collaboration-watch", Action: "/collaboration/watch", Target: "#collaboration-watch",
+		RecordID: "opportunity_42", Version: v.RecordVersion, Watching: v.Watching, Count: v.WatcherCount,
+	})
+}
+
+templ collaborationAside(v CollaborationView) {
+	@ui.RecordPresence(ui.RecordPresenceProps{
+		ID: "collaboration-presence", People: v.People, Busy: true, PollSource: "/collaboration/presence",
+	})
+	@ui.AssigneePicker(ui.AssigneePickerProps{
+		ID: "collaboration-assignee", Label: "Responsable", Action: "/collaboration/assignee", Target: "#collaboration-assignee",
+		Version: v.RecordVersion, Current: v.AssigneeID, Options: collaborationAssignees(), Error: v.AssigneeError,
+	})
+	@ui.DeadlineStatus(ui.DeadlineStatusProps{
+		Label: "SLA de réponse", At: v.DueAt, Now: v.Now, Location: v.Location, WarningBefore: 4 * time.Hour,
+	})
+}
+
+templ collaborationCommentThread(v CollaborationView) {
+	@ui.CommentThread(ui.CommentThreadProps{
+		ID: "collaboration-comments", Title: "Discussion", Action: "/collaboration/comments",
+		Version: v.ThreadVersion, Comments: v.Comments, Error: v.CommentError, Busy: true, PollSource: "/collaboration/comments",
+	})
+}

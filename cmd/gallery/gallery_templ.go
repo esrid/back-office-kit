@@ -141,7 +141,7 @@ func Gallery(secs []Section) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, " exemples · templ + daisyUI 5 + Unpoly 3</p><h1>Ce que daisyUI ne fait pas encore</h1><p class=\"gal-lede\">daisyUI donne les primitives. La première série ajoute la sémantique back-office : tri et pagination portés par l'URL, validation serveur par champ, états vides, statuts cohérents. La suite couvre écrans métier, workflows serveur et interactions agentiques : plan, approbation, exécution observable, reçu, annulation et relais humain. Le dernier niveau traite gouvernance, revue des changements et conflits de version. Les outils avancés ajoutent commandes globales, requêtes composées et vues de traitement denses. Rendu réel, pas des maquettes.</p></header>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, " exemples · templ + daisyUI 5 + Unpoly 3</p><h1>Ce que daisyUI ne fait pas encore</h1><p class=\"gal-lede\">daisyUI donne les primitives. La première série ajoute la sémantique back-office : tri et pagination portés par l'URL, validation serveur par champ, états vides, statuts cohérents. La suite couvre écrans métier, workflows serveur et interactions agentiques : plan, approbation, exécution observable, reçu, annulation et relais humain. Les niveaux suivants traitent gouvernance, sécurité, accès et coordination entre opérateurs. Les outils avancés ajoutent commandes globales, requêtes composées et vues de traitement denses. Rendu réel, pas des maquettes.</p></header>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

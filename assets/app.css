@@ -2,3 +2,19 @@
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
 }
+
+/* Le thème sombre de daisyUI met --color-primary à oklch(0.58 …), ce qui donne
+   4,13:1 avec son --color-primary-content — sous le seuil AA de 4,5 pour du
+   texte normal, et tous les boutons primaires du kit sont concernés.
+   Assombrir la primaire suffit ; la teinte et la saturation ne bougent pas.
+
+   Les deux sélecteurs sont nécessaires : le réglage « système » ne pose aucun
+   attribut sur la racine, un choix explicite en pose un. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-primary: oklch(50% 0.233 277.117);
+  }
+}
+:root[data-theme="dark"] {
+  --color-primary: oklch(50% 0.233 277.117);
+}

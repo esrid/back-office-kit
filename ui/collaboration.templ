@@ -1,0 +1,606 @@
+package ui
+
+import (
+	"strconv"
+	"time"
+)
+
+// AssigneePickerProps describes a server-owned assignment control. Version is
+// submitted so the backend can reject an assignment made from a stale record.
+type AssigneePickerProps struct {
+	ID              string
+	Label           string
+	Action          string
+	Target          string
+	Version         string
+	Current         string
+	Options         []Option
+	UnassignedLabel string
+	Disabled        bool
+	Error           string
+}
+
+func assigneeLabel(label string) string {
+	if label == "" {
+		return "Responsable"
+	}
+	return label
+}
+
+func unassignedLabel(label string) string {
+	if label == "" {
+		return "Non assigné"
+	}
+	return label
+}
+
+// AssigneePicker assigns one record through a versioned POST. It is a minor
+// fragment: replacing it must not create a browser-history entry.
+templ AssigneePicker(p AssigneePickerProps) {
+	<form
+		id={ p.ID }
+		method="post"
+		action={ templ.SafeURL(p.Action) }
+		up-submit
+		if p.Target != "" {
+			up-target={ p.Target }
+		}
+		class="flex flex-col gap-2"
+	>
+		<input type="hidden" name="record_version" value={ p.Version }/>
+		<fieldset class="fieldset">
+			<label class="fieldset-legend" for={ p.ID + "-assignee" }>{ assigneeLabel(p.Label) }</label>
+			<div class="flex flex-col gap-2 sm:flex-row sm:items-start">
+				<select
+					id={ p.ID + "-assignee" }
+					name="assignee_id"
+					class={ "select w-full", templ.KV("select-error", p.Error != "") }
+					disabled?={ p.Disabled }
+					if p.Error != "" {
+						aria-invalid="true"
+						aria-describedby={ p.ID + "-error" }
+					}
+				>
+					<option value="" selected?={ p.Current == "" }>{ unassignedLabel(p.UnassignedLabel) }</option>
+					for _, option := range p.Options {
+						<option value={ option.Value } selected?={ option.Value == p.Current }>{ option.Label }</option>
+					}
+				</select>
+				<button type="submit" class="btn btn-sm" disabled?={ p.Disabled }>Assigner</button>
+			</div>
+			if p.Error != "" {
+				<p id={ p.ID + "-error" } class="label text-error">{ p.Error }</p>
+			}
+		</fieldset>
+	</form>
+}
+
+type Comment struct {
+	ID       string
+	Author   string
+	Initials string
+	Body     string
+	At       string
+	Datetime string
+	Edited   bool
+}
+
+type CommentThreadProps struct {
+	ID          string
+	Title       string
+	Action      string
+	Version     string
+	Comments    []Comment
+	Error       string
+	Busy        bool
+	PollSource  string
+	Placeholder string
+}
+
+func commentThreadTitle(title string) string {
+	if title == "" {
+		return "Discussion"
+	}
+	return title
+}
+
+func commentPlaceholder(placeholder string) string {
+	if placeholder == "" {
+		return "Ajouter une note utile aux autres opérateurs…"
+	}
+	return placeholder
+}
+
+// CommentThread renders durable comments and a POST composer. Bodies are
+// plain text; applications should turn mentions into notifications on the
+// server instead of embedding executable markup in a comment.
+templ CommentThread(p CommentThreadProps) {
+	<section
+		id={ p.ID }
+		class="card card-border bg-base-100"
+		aria-labelledby={ p.ID + "-title" }
+		aria-busy={ strconv.FormatBool(p.Busy) }
+		if p.Busy && p.PollSource != "" {
+			up-poll
+			up-interval="5000"
+			up-source={ p.PollSource }
+		}
+	>
+		<div class="card-body gap-4 p-4">
+			<header class="flex flex-wrap items-center justify-between gap-2">
+				<h2 id={ p.ID + "-title" } class="font-semibold">{ commentThreadTitle(p.Title) }</h2>
+				<span class="badge badge-ghost badge-sm">{ strconv.Itoa(len(p.Comments)) }</span>
+			</header>
+			if len(p.Comments) == 0 {
+				<p class="rounded-box border border-dashed border-base-300 p-4 text-center text-sm opacity-65">Aucun commentaire. Ajoutez le contexte qui aidera la prochaine personne.</p>
+			} else {
+				<ol class="flex flex-col gap-4" aria-live="polite">
+					for _, comment := range p.Comments {
+						<li class="flex items-start gap-3" data-comment-id={ comment.ID }>
+							<div class="avatar placeholder" aria-hidden="true"><div class="bg-neutral text-neutral-content w-9 rounded-full"><span class="text-xs">{ comment.Initials }</span></div></div>
+							<article class="min-w-0 flex-1 rounded-box bg-base-200 p-3">
+								<header class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+									<h3 class="text-sm font-medium">{ comment.Author }</h3>
+									if comment.At != "" {
+										<time class="text-xs opacity-55" datetime={ comment.Datetime }>{ comment.At }</time>
+									}
+								</header>
+								<p class="mt-1 whitespace-pre-wrap break-words text-sm">{ comment.Body }</p>
+								if comment.Edited {
+									<p class="mt-1 text-xs opacity-50">modifié</p>
+								}
+							</article>
+						</li>
+					}
+				</ol>
+			}
+			<form method="post" action={ templ.SafeURL(p.Action) } up-submit up-target={ "#" + p.ID } class="border-t border-base-300 pt-3">
+				<input type="hidden" name="thread_version" value={ p.Version }/>
+				<fieldset class="fieldset">
+					<label class="fieldset-legend" for={ p.ID + "-body" }>Nouveau commentaire</label>
+					<textarea
+						id={ p.ID + "-body" }
+						name="body"
+						class={ "textarea min-h-24 w-full", templ.KV("textarea-error", p.Error != "") }
+						placeholder={ commentPlaceholder(p.Placeholder) }
+						required
+						if p.Error != "" {
+							aria-invalid="true"
+							aria-describedby={ p.ID + "-body-error" }
+						}
+					></textarea>
+					if p.Error != "" {
+						<p id={ p.ID + "-body-error" } class="label text-error">{ p.Error }</p>
+					}
+				</fieldset>
+				<div class="mt-2 flex justify-end"><button type="submit" class="btn btn-primary btn-sm">Publier</button></div>
+			</form>
+		</div>
+	</section>
+}
+
+type WatchButtonProps struct {
+	ID       string
+	Action   string
+	Target   string
+	RecordID string
+	Version  string
+	Watching bool
+	Count    int
+}
+
+func watchIntent(watching bool) string {
+	if watching {
+		return "unwatch"
+	}
+	return "watch"
+}
+
+func watchLabel(watching bool) string {
+	if watching {
+		return "Ne plus suivre"
+	}
+	return "Suivre"
+}
+
+// WatchButton subscribes or unsubscribes the current operator through POST.
+// Count is supplied by the backend and is never guessed client-side.
+templ WatchButton(p WatchButtonProps) {
+	<form
+		id={ p.ID }
+		method="post"
+		action={ templ.SafeURL(p.Action) }
+		up-submit
+		if p.Target != "" {
+			up-target={ p.Target }
+		}
+		class="inline-flex"
+	>
+		<input type="hidden" name="record_id" value={ p.RecordID }/>
+		<input type="hidden" name="record_version" value={ p.Version }/>
+		<button
+			type="submit"
+			name="intent"
+			value={ watchIntent(p.Watching) }
+			class={ "btn btn-sm", templ.KV("btn-active", p.Watching) }
+			aria-pressed={ strconv.FormatBool(p.Watching) }
+		>
+			{ watchLabel(p.Watching) }
+			if p.Count > 0 {
+				<span class="badge badge-sm">{ strconv.Itoa(p.Count) }</span>
+			}
+		</button>
+	</form>
+}
+
+type ActivityKind string
+
+const (
+	ActivityComment    ActivityKind = "comment"
+	ActivityAssignment ActivityKind = "assignment"
+	ActivityStatus     ActivityKind = "status"
+	ActivitySystem     ActivityKind = "system"
+)
+
+type ActivityItem struct {
+	ID       string
+	Kind     ActivityKind
+	Actor    string
+	Action   string
+	Detail   string
+	At       string
+	Datetime string
+	Href     string
+}
+
+type ActivityFeedProps struct {
+	ID           string
+	Title        string
+	Items        []ActivityItem
+	Busy         bool
+	PollSource   string
+	DetailTarget string
+}
+
+func activityFeedTitle(title string) string {
+	if title == "" {
+		return "Activité"
+	}
+	return title
+}
+
+func activityTone(kind ActivityKind) string {
+	switch kind {
+	case ActivityComment:
+		return "info"
+	case ActivityAssignment:
+		return "warning"
+	case ActivityStatus:
+		return "success"
+	default:
+		return "neutral"
+	}
+}
+
+// ActivityFeed combines human coordination events with selected business
+// events. It is not an immutable audit log; use AuditTimeline for evidence.
+// Targeted detail links carry history because they are navigations, not minor
+// inline updates.
+templ ActivityFeed(p ActivityFeedProps) {
+	<section
+		id={ p.ID }
+		class="card card-border bg-base-100"
+		aria-labelledby={ p.ID + "-title" }
+		aria-busy={ strconv.FormatBool(p.Busy) }
+		if p.Busy && p.PollSource != "" {
+			up-poll
+			up-interval="5000"
+			up-source={ p.PollSource }
+		}
+	>
+		<div class="card-body gap-4 p-4">
+			<header class="flex flex-wrap items-center justify-between gap-2">
+				<h2 id={ p.ID + "-title" } class="font-semibold">{ activityFeedTitle(p.Title) }</h2>
+				if p.Busy {
+					<span class="loading loading-dots loading-xs" aria-label="Actualisation"></span>
+				}
+			</header>
+			if len(p.Items) == 0 {
+				@EmptyState("Aucune activité", "Les changements et échanges apparaîtront ici.", nil)
+			} else {
+				<ol class="relative ml-2 border-s border-base-300" aria-live="polite">
+					for _, item := range p.Items {
+						<li class="relative ms-5 pb-5 last:pb-0" data-activity-id={ item.ID }>
+							<span class={ "status absolute -start-[1.56rem] top-1.5", toneOf(activityTone(item.Kind)).Dot } aria-hidden="true"></span>
+							<article>
+								<div class="flex flex-wrap items-baseline justify-between gap-2">
+									<p class="text-sm"><strong>{ item.Actor }</strong> { item.Action }</p>
+									if item.At != "" {
+										<time class="whitespace-nowrap text-xs opacity-55" datetime={ item.Datetime }>{ item.At }</time>
+									}
+								</div>
+								if item.Detail != "" {
+									<p class="mt-1 text-sm opacity-70">{ item.Detail }</p>
+								}
+								if item.Href != "" {
+									<a
+										href={ templ.SafeURL(item.Href) }
+										up-follow
+										if p.DetailTarget != "" {
+											up-target={ p.DetailTarget }
+											up-history="true"
+										}
+										class="link link-hover mt-1 inline-block text-xs"
+									>Voir le détail</a>
+								}
+							</article>
+						</li>
+					}
+				</ol>
+			}
+		</div>
+	</section>
+}
+
+type DeadlineState string
+
+const (
+	DeadlineScheduled DeadlineState = "scheduled"
+	DeadlineDueSoon   DeadlineState = "due-soon"
+	DeadlineOverdue   DeadlineState = "overdue"
+	DeadlineCompleted DeadlineState = "completed"
+)
+
+type DeadlineStatusProps struct {
+	Label         string
+	At            time.Time
+	Now           time.Time
+	Location      *time.Location
+	Completed     bool
+	WarningBefore time.Duration
+}
+
+func deadlineState(p DeadlineStatusProps) DeadlineState {
+	if p.Completed {
+		return DeadlineCompleted
+	}
+	if p.At.Before(p.Now) {
+		return DeadlineOverdue
+	}
+	warning := p.WarningBefore
+	if warning <= 0 {
+		warning = 24 * time.Hour
+	}
+	if !p.At.After(p.Now.Add(warning)) {
+		return DeadlineDueSoon
+	}
+	return DeadlineScheduled
+}
+
+func deadlineTone(state DeadlineState) string {
+	switch state {
+	case DeadlineCompleted:
+		return "success"
+	case DeadlineOverdue:
+		return "error"
+	case DeadlineDueSoon:
+		return "warning"
+	default:
+		return "neutral"
+	}
+}
+
+func deadlineLabel(state DeadlineState) string {
+	switch state {
+	case DeadlineCompleted:
+		return "Terminé"
+	case DeadlineOverdue:
+		return "En retard"
+	case DeadlineDueSoon:
+		return "Bientôt"
+	default:
+		return "Planifié"
+	}
+}
+
+// DeadlineStatus presents one due date without reading the clock. Now and the
+// operator's Location come from the request, just like Timestamp.
+templ DeadlineStatus(p DeadlineStatusProps) {
+	if !p.At.IsZero() {
+		{{ state := deadlineState(p) }}
+		{{ timestamp := TimestampProps{At: p.At, Now: p.Now, Location: p.Location, Absolute: true} }}
+		<div class="flex flex-wrap items-center justify-between gap-3 rounded-box border border-base-300 p-3">
+			<div>
+				<p class="text-xs font-medium uppercase tracking-wide opacity-55">{ p.Label }</p>
+				<p class="mt-1 text-sm font-medium">
+					<span class="sr-only">Échéance </span>@Timestamp(timestamp)
+				</p>
+			</div>
+			<span class={ "badge badge-sm", toneOf(deadlineTone(state)).Badge }>{ deadlineLabel(state) }</span>
+		</div>
+	}
+}
+
+type TaskItem struct {
+	ID        string
+	Title     string
+	Assignee  string
+	DueAt     time.Time
+	Completed bool
+	ReadOnly  bool
+}
+
+type TaskListProps struct {
+	ID       string
+	Title    string
+	Action   string
+	Version  string
+	Items    []TaskItem
+	Now      time.Time
+	Location *time.Location
+	Error    string
+}
+
+func taskListTitle(title string) string {
+	if title == "" {
+		return "Tâches"
+	}
+	return title
+}
+
+func openTaskCount(items []TaskItem) int {
+	count := 0
+	for _, item := range items {
+		if !item.Completed {
+			count++
+		}
+	}
+	return count
+}
+
+func openTaskLabel(items []TaskItem) string {
+	count := openTaskCount(items)
+	if count == 1 {
+		return "1 ouverte"
+	}
+	return strconv.Itoa(count) + " ouvertes"
+}
+
+func taskIntent(item TaskItem) string {
+	if item.Completed {
+		return "reopen:" + item.ID
+	}
+	return "complete:" + item.ID
+}
+
+func taskActionLabel(item TaskItem) string {
+	if item.Completed {
+		return "Rouvrir " + item.Title
+	}
+	return "Terminer " + item.Title
+}
+
+// TaskList renders assignable follow-ups and changes one exact task through a
+// versioned POST. The backend owns completion and rejects a stale task list.
+templ TaskList(p TaskListProps) {
+	<section id={ p.ID } class="card card-border bg-base-100" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body gap-4 p-4">
+			<header class="flex flex-wrap items-center justify-between gap-2">
+				<h2 id={ p.ID + "-title" } class="font-semibold">{ taskListTitle(p.Title) }</h2>
+				<span class="badge badge-ghost badge-sm">{ openTaskLabel(p.Items) }</span>
+			</header>
+			if p.Error != "" {
+				<div role="alert" class="alert alert-error py-2 text-sm">{ p.Error }</div>
+			}
+			if len(p.Items) == 0 {
+				@EmptyState("Aucune tâche", "Les prochaines actions assignées apparaîtront ici.", nil)
+			} else {
+				<form method="post" action={ templ.SafeURL(p.Action) } up-submit up-target={ "#" + p.ID }>
+					<input type="hidden" name="task_version" value={ p.Version }/>
+					<ul class="flex flex-col divide-y divide-base-300">
+						for _, item := range p.Items {
+							<li class="flex items-start gap-3 py-3 first:pt-0 last:pb-0" data-task-id={ item.ID }>
+								<button
+									type="submit"
+									name="intent"
+									value={ taskIntent(item) }
+									class={ "btn btn-ghost btn-sm btn-square shrink-0 border border-base-300", templ.KV("text-success", item.Completed) }
+									aria-label={ taskActionLabel(item) }
+									aria-pressed={ strconv.FormatBool(item.Completed) }
+									disabled?={ item.ReadOnly }
+								>
+									if item.Completed {
+										↺
+									} else {
+										✓
+									}
+								</button>
+								<div class="min-w-0 flex-1">
+									<p class={ "text-sm font-medium", templ.KV("line-through opacity-55", item.Completed) }>{ item.Title }</p>
+									<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs opacity-65">
+										if item.Assignee != "" {
+											<span>{ item.Assignee }</span>
+										}
+										if !item.DueAt.IsZero() {
+											{{ timestamp := TimestampProps{At: item.DueAt, Now: p.Now, Location: p.Location} }}
+											{{ state := deadlineState(DeadlineStatusProps{At: item.DueAt, Now: p.Now, Completed: item.Completed}) }}
+											<span>
+												@Timestamp(timestamp)
+											</span>
+											<span class={ "badge badge-xs", toneOf(deadlineTone(state)).Badge }>{ deadlineLabel(state) }</span>
+										}
+									</div>
+								</div>
+								if item.ReadOnly {
+									<span class="badge badge-sm">Lecture seule</span>
+								}
+							</li>
+						}
+					</ul>
+				</form>
+			}
+		</div>
+	</section>
+}
+
+type PresenceMode string
+
+const (
+	PresenceViewing PresenceMode = "viewing"
+	PresenceEditing PresenceMode = "editing"
+)
+
+type PresencePerson struct {
+	ID       string
+	Name     string
+	Initials string
+	Mode     PresenceMode
+}
+
+type RecordPresenceProps struct {
+	ID         string
+	People     []PresencePerson
+	Busy       bool
+	PollSource string
+}
+
+func presenceLabel(mode PresenceMode) string {
+	if mode == PresenceEditing {
+		return "modifie cette fiche"
+	}
+	return "consulte cette fiche"
+}
+
+// RecordPresence shows advisory server-reported presence. It never replaces
+// optimistic version checks: a missing person here is not permission to save
+// over a concurrent edit.
+templ RecordPresence(p RecordPresenceProps) {
+	<section
+		id={ p.ID }
+		class="rounded-box border border-base-300 bg-base-100 p-3"
+		aria-label="Présence sur cette fiche"
+		aria-busy={ strconv.FormatBool(p.Busy) }
+		aria-live="polite"
+		if p.Busy && p.PollSource != "" {
+			up-poll
+			up-interval="5000"
+			up-source={ p.PollSource }
+		}
+	>
+		if len(p.People) == 0 {
+			<p class="text-sm opacity-65">Personne d’autre sur cette fiche.</p>
+		} else {
+			<ul class="flex flex-col gap-2">
+				for _, person := range p.People {
+					<li class="flex items-center gap-2" data-user-id={ person.ID }>
+						<div class="avatar placeholder" aria-hidden="true"><div class={ "w-8 rounded-full", templ.KV("bg-warning text-warning-content", person.Mode == PresenceEditing), templ.KV("bg-base-300 text-base-content", person.Mode != PresenceEditing) }><span class="text-xs">{ person.Initials }</span></div></div>
+						<p class="min-w-0 text-sm"><strong>{ person.Name }</strong> <span class="opacity-65">{ presenceLabel(person.Mode) }</span></p>
+						if person.Mode == PresenceEditing {
+							<span class="status status-warning ms-auto" aria-label="Modification en cours"></span>
+						}
+					</li>
+				}
+			</ul>
+		}
+	</section>
+}

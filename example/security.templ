@@ -1,0 +1,43 @@
+package main
+
+import "github.com/esrid/back-office-kit/ui"
+
+templ SecurityPage(v SecurityView) {
+	@Layout("Sécurité") {
+		@ui.Shell("Acme Admin", nav(), "/security", v.Operator, nil) {
+			@ui.PageHeader(ui.PageProps{
+				Title:    "Sécurité",
+				Subtitle: "Sessions, clés d'API et journal des événements",
+			})
+			<div class="mt-5 flex flex-col gap-6">
+				@ui.SecurityEventFeed(ui.SecurityEventFeedProps{
+					ID: "events", Title: "Événements récents",
+					Description: "Ce que le backend a enregistré sur ce compte.",
+					Events:      v.Events,
+					Filters:     severityFilter(v.Severity),
+					Target:      "#events",
+				})
+				@ui.SessionManager(ui.SessionManagerProps{
+					ID: "sessions", Title: "Sessions actives",
+					Description:  "Révoquer une session déconnecte immédiatement l'appareil.",
+					Action:       "/security/sessions/revoke",
+					SubjectID:    "usr_8f31c2", Version: "4",
+					Sessions:     v.Sessions,
+					CanRevokeAll: true,
+				})
+			</div>
+		}
+	}
+}
+
+// severityFilter is an ordinary GET form: the chosen severity is the URL.
+templ severityFilter(current string) {
+	<form method="get" action="/security" up-submit up-target="#events" up-history="true" up-autosubmit class="flex items-center gap-2">
+		<label class="sr-only" for="sev">Filtrer par gravité</label>
+		<select id="sev" name="severity" class="select select-sm w-auto">
+			for _, o := range severityOptions() {
+				<option value={ o.Value } selected?={ o.Value == current }>{ o.Label }</option>
+			}
+		</select>
+	</form>
+}

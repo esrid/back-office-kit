@@ -273,6 +273,7 @@ func sections() []Section {
 	secs = append(secs, tier6Sections()...)
 	secs = append(secs, tier7Sections()...)
 	secs = append(secs, tier8Sections()...)
+	secs = append(secs, tier9Sections()...)
 	// Commerce et Marketing ne sont pas des tiers : ce sont d'autres domaines,
 	// donc ils ferment la liste au lieu de s'intercaler dans la progression.
 	secs = append(secs, commerceSections()...)

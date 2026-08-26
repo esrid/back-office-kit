@@ -1,0 +1,108 @@
+package main
+
+import (
+	"time"
+
+	"github.com/esrid/back-office-kit/ui"
+)
+
+templ demoAssigneePicker() {
+	<div class="max-w-md">
+		@ui.AssigneePicker(ui.AssigneePickerProps{
+			ID: "demo-assignee", Label: "Responsable", Action: "/records/opportunity-42/assignee", Target: "#demo-assignee", Version: "18", Current: "usr_nora",
+			Options: []ui.Option{{Value: "usr_amelie", Label: "Amélie Rousseau"}, {Value: "usr_nora", Label: "Nora Martin"}, {Value: "usr_bruno", Label: "Bruno Keller"}},
+		})
+	</div>
+}
+
+templ demoCommentThread() {
+	<div class="max-w-2xl">
+		@ui.CommentThread(ui.CommentThreadProps{
+			ID: "demo-comments", Title: "Discussion", Action: "/records/opportunity-42/comments", Version: "7",
+			Comments: []ui.Comment{
+				{ID: "comment_71", Author: "Nora Martin", Initials: "NM", Body: "Le budget est confirmé. Il manque encore la date de déploiement.", At: "hier à 16:42", Datetime: "2026-08-24T16:42:00-04:00"},
+				{ID: "comment_74", Author: "Amélie Rousseau", Initials: "AR", Body: "J’appelle le client cet après-midi et je complète la fiche.", At: "il y a 28 minutes", Datetime: "2026-08-25T14:52:00-04:00", Edited: true},
+			},
+		})
+	</div>
+}
+
+templ demoWatchButton() {
+	@ui.WatchButton(ui.WatchButtonProps{ID: "demo-watch", Action: "/records/opportunity-42/watch", Target: "#demo-watch", RecordID: "opportunity_42", Version: "18", Watching: true, Count: 4})
+}
+
+templ demoActivityFeed() {
+	<div class="max-w-2xl">
+		@ui.ActivityFeed(ui.ActivityFeedProps{
+			ID: "demo-activity", Title: "Activité de l’opportunité", DetailTarget: "#record-detail",
+			Items: []ui.ActivityItem{
+				{ID: "activity_91", Kind: ui.ActivityComment, Actor: "Amélie Rousseau", Action: "a ajouté un commentaire", Detail: "La date de déploiement sera confirmée vendredi.", At: "il y a 28 minutes", Datetime: "2026-08-25T14:52:00-04:00", Href: "/records/opportunity-42/activity/91"},
+				{ID: "activity_88", Kind: ui.ActivityAssignment, Actor: "Nora Martin", Action: "a confié la fiche à Amélie Rousseau", At: "hier à 09:14", Datetime: "2026-08-24T09:14:00-04:00"},
+				{ID: "activity_82", Kind: ui.ActivityStatus, Actor: "Bruno Keller", Action: "a passé l’opportunité à Proposition", Detail: "Valeur estimée : 24 000 €.", At: "le 22 août", Datetime: "2026-08-22T11:06:00-04:00"},
+			},
+		})
+	</div>
+}
+
+templ demoDeadlineStatus() {
+	<div class="grid max-w-3xl gap-3 sm:grid-cols-3">
+		@ui.DeadlineStatus(ui.DeadlineStatusProps{Label: "SLA de réponse", At: time.Date(2026, 8, 25, 17, 0, 0, 0, time.FixedZone("AST", -4*60*60)), Now: time.Date(2026, 8, 25, 15, 20, 0, 0, time.FixedZone("AST", -4*60*60)), Location: time.FixedZone("AST", -4*60*60), WarningBefore: 4 * time.Hour})
+		@ui.DeadlineStatus(ui.DeadlineStatusProps{Label: "Relance client", At: time.Date(2026, 8, 24, 12, 0, 0, 0, time.FixedZone("AST", -4*60*60)), Now: time.Date(2026, 8, 25, 15, 20, 0, 0, time.FixedZone("AST", -4*60*60)), Location: time.FixedZone("AST", -4*60*60)})
+		@ui.DeadlineStatus(ui.DeadlineStatusProps{Label: "Qualification", At: time.Date(2026, 8, 23, 10, 0, 0, 0, time.FixedZone("AST", -4*60*60)), Now: time.Date(2026, 8, 25, 15, 20, 0, 0, time.FixedZone("AST", -4*60*60)), Location: time.FixedZone("AST", -4*60*60), Completed: true})
+	</div>
+}
+
+templ demoTaskList() {
+	{{ location := time.FixedZone("AST", -4*60*60) }}
+	{{ now := time.Date(2026, 8, 25, 15, 20, 0, 0, location) }}
+	<div class="max-w-2xl">
+		@ui.TaskList(ui.TaskListProps{
+			ID: "demo-tasks", Title: "Prochaines actions", Action: "/records/opportunity-42/tasks", Version: "11", Now: now, Location: location,
+			Items: []ui.TaskItem{
+				{ID: "task_81", Title: "Confirmer la date de déploiement", Assignee: "Amélie Rousseau", DueAt: now.Add(2 * time.Hour)},
+				{ID: "task_82", Title: "Envoyer la proposition révisée", Assignee: "Nora Martin", DueAt: now.Add(26 * time.Hour)},
+				{ID: "task_79", Title: "Valider le budget", Assignee: "Bruno Keller", DueAt: now.Add(-24 * time.Hour), Completed: true},
+			},
+		})
+	</div>
+}
+
+templ demoRecordPresence() {
+	<div class="max-w-md">
+		@ui.RecordPresence(ui.RecordPresenceProps{
+			ID: "demo-presence", People: []ui.PresencePerson{
+				{ID: "usr_nora", Name: "Nora Martin", Initials: "NM", Mode: ui.PresenceEditing},
+				{ID: "usr_bruno", Name: "Bruno Keller", Initials: "BK", Mode: ui.PresenceViewing},
+			},
+		})
+	</div>
+}
+
+templ demoCollaborationStates() {
+	<div class="grid gap-4 lg:grid-cols-3">
+		<div class="rounded-box border border-base-300 p-4">
+			<h4 class="mb-3 text-sm font-semibold">Conflit de version</h4>
+			@ui.AssigneePicker(ui.AssigneePickerProps{
+				ID: "demo-assignee-conflict", Action: "/records/42/assignee", Version: "19", Current: "usr_nora",
+				Options: []ui.Option{{Value: "usr_nora", Label: "Nora Martin"}}, Error: "La fiche a changé. La valeur actuelle a été rechargée.",
+			})
+		</div>
+		<div class="rounded-box border border-base-300 p-4">
+			<h4 class="mb-3 text-sm font-semibold">Contrôle désactivé</h4>
+			@ui.AssigneePicker(ui.AssigneePickerProps{
+				ID: "demo-assignee-disabled", Action: "/records/42/assignee", Current: "usr_nora",
+				Options: []ui.Option{{Value: "usr_nora", Label: "Nora Martin"}}, Disabled: true,
+			})
+		</div>
+		<div class="rounded-box border border-base-300 p-4">
+			<h4 class="mb-3 text-sm font-semibold">Présence vide</h4>
+			@ui.RecordPresence(ui.RecordPresenceProps{ID: "demo-presence-empty"})
+		</div>
+	</div>
+	<div class="mt-4 max-w-2xl">
+		@ui.CommentThread(ui.CommentThreadProps{
+			ID: "demo-comments-empty", Title: "Discussion vide", Action: "/records/42/comments", Version: "1",
+			Error: "Le commentaire ne peut pas être vide.", Busy: true, PollSource: "/records/42/comments",
+		})
+	</div>
+}

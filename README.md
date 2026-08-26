@@ -2,9 +2,10 @@
 
 Composants de back-office en [templ](https://templ.guide) + [daisyUI 5](https://daisyui.com) + [Unpoly 3](https://unpoly.com).
 
-57 composants, des primitives (tableau triable, pagination, champs) jusqu'aux
+Des primitives (tableau triable, pagination, champs) jusqu'aux
 écrans complets (liste, fiche, formulaire, réglages), aux interfaces agentiques
-(plan d'action, carte d'approbation, journal d'exécution) et à la gouvernance.
+(plan d'action, carte d'approbation, journal d'exécution), à la gouvernance,
+à la sécurité et à la collaboration humaine.
 
 ## Documentation
 
@@ -14,7 +15,7 @@ Deux entrées, complémentaires.
 champs de chaque struct de props, et le pourquoi de chacun.
 
 ```sh
-go doc github.com/esrid/back-office-kit/ui              # les 84 composants
+go doc github.com/esrid/back-office-kit/ui              # tous les composants
 go doc github.com/esrid/back-office-kit/ui FieldProps   # tous les champs, commentés
 go doc github.com/esrid/back-office-kit/ui DataTable
 ```
@@ -70,16 +71,17 @@ Ajoutez la source dans votre `app.css` :
 Puis chargez Unpoly dans votre `<head>` — le kit fonctionne sans lui, Unpoly ne
 fait qu'éviter les rechargements.
 
-## Une page complète
+## Des écrans complets
 
-`example/` est une page réelle : filtre, tri et pagination servis par un vrai
-serveur Go, sans état client.
+`example/` sert de vrais écrans depuis un serveur Go. La liste des utilisateurs
+montre filtre, tri et pagination sans état client. `/collaboration` compose une
+fiche multi-opérateur avec responsable, suivi, tâches, échéance, présence,
+activité et commentaires ; ses mutations sont des POST versionnés.
 
 ```sh
 git clone https://github.com/esrid/back-office-kit && cd back-office-kit
 npm install
-npx tailwindcss -i assets/app.css -o dist/app.css --minify
-go run ./example        # http://localhost:8080
+make dev                # http://localhost:8080
 ```
 
 L'ossature d'un écran de liste tient en un bloc :
