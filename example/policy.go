@@ -67,10 +67,10 @@ func evaluatePolicy(actor, resource, action string) ui.PolicySimulation {
 		decision = ui.AccessAllowed
 	}
 	return ui.PolicySimulation{
-		DecisionID: "dec_" + actor + "_" + resource + "_" + action,
-		Decision:   decision,
-		Reason:     reason,
-		Policy:     "billing.rbac.v3",
+		DecisionID:  "dec_" + actor + "_" + resource + "_" + action,
+		Decision:    decision,
+		Reason:      reason,
+		Policy:      "billing.rbac.v3",
 		EvaluatedAt: "à l'instant",
 		Facts: []ui.PolicyFact{
 			{Label: "Rôle effectif", Value: role},

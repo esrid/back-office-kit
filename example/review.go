@@ -41,12 +41,12 @@ func reviewFor(req ui.ApprovalRequest) ReviewView {
 		Approval: ui.ApprovalCardProps{
 			PlanID: req.PlanID, PlanVersion: req.PlanVersion, PlanDigest: "sha256:8f31c2a4",
 			Title: "Approuver le plan complet", Risk: req.Risk,
-			Summary:      "Cette approbation autorise les trois étapes exactement telles qu'elles sont présentées.",
-			Action:       "/approvals/" + req.ID + "/approve",
-			RejectHref:   "/approvals/" + req.ID + "/reject",
-			ConfirmLabel: "Approuver et exécuter",
-			RequireText:  "SUSPENDRE 12 COMPTES",
-			ExpiresAt:    "dans 10 minutes",
+			Summary:        "Cette approbation autorise les trois étapes exactement telles qu'elles sont présentées.",
+			Action:         "/approvals/" + req.ID + "/approve",
+			RejectHref:     "/approvals/" + req.ID + "/reject",
+			ConfirmLabel:   "Approuver et exécuter",
+			RequireText:    "SUSPENDRE 12 COMPTES",
+			ExpiresAt:      "dans 10 minutes",
 			GlobalApproval: true,
 		},
 	}
