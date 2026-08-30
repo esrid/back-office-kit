@@ -44,10 +44,12 @@ sections : les invariants du kit, puis chaque composant avec sa signature exacte
 extraite du source. C'est le fichier à donner à un agent plutôt que 470 Ko de
 HTML rendu.
 
-GitHub Pages n'est pas activé — il demande un dépôt public ou un plan payant.
-Si le dépôt passe public, la source Pages devra être `/` ou `/docs` (`/dist`
-n'est pas un chemin accepté), donc soit renommer le dossier de sortie, soit
-publier via GitHub Actions.
+**En ligne : <https://esrid.github.io/back-office-kit/>** — la même galerie, plus
+`llms.txt` à <https://esrid.github.io/back-office-kit/llms.txt>. Publiée par
+`.github/workflows/pages.yml`, qui met en ligne `dist/` sans le reconstruire :
+un `make gallery` oublié se voit donc sur le site. La source Pages est « GitHub
+Actions » et non une branche, `/dist` n'étant pas un chemin accepté par la
+publication depuis une branche.
 
 ## Principes
 
@@ -69,13 +71,8 @@ go get github.com/esrid/back-office-kit
 Les fichiers `*_templ.go` sont versionnés, donc le paquet est utilisable sans
 installer templ. Vous n'avez besoin de templ que pour vos propres templates.
 
-Le dépôt est privé : `go get` a besoin de savoir qu'il ne passe pas par le proxy,
-et Git de parler SSH.
-
 ```sh
-export GOPRIVATE=github.com/esrid/*
-git config --global url."git@github.com:".insteadOf "https://github.com/"
-go get github.com/esrid/back-office-kit
+go get github.com/esrid/back-office-kit@v0.1.0
 ```
 
 Tailwind doit voir les classes du kit, sinon le CSS manquera à l'exécution. Les
