@@ -1,0 +1,39 @@
+package main
+
+import "github.com/esrid/back-office-kit/ui"
+import "time"
+
+// FeedPage drives LoadMore against a real Unpoly: the button appends rows
+// instead of replacing them, so this page is where ":after" gets proven rather
+// than assumed. It also composes its own header, which is what Breadcrumb is
+// for -- PageHeader would have rendered a title this screen does not want.
+templ FeedPage(v FeedView) {
+	@Layout("Activité") {
+		@ui.Shell("Acme Admin", nav(), "/feed", v.Operator, nil) {
+			@ui.Breadcrumb([]ui.Crumb{
+				{Label: "Acme", Href: "/"},
+				{Label: "Activité"},
+			})
+			<h1 class="text-xl font-semibold tracking-tight mt-2">Journal d'activité</h1>
+			<p class="text-sm opacity-60 mt-0.5">Trop de lignes pour les compter. Chargez la suite.</p>
+			<div class="overflow-x-auto mt-5">
+				<table id="events" class="table">
+					<thead>
+						<tr><th>Événement</th><th>Auteur</th><th>Quand</th></tr>
+					</thead>
+					<tbody>
+						for _, e := range v.Events {
+							{{ at := ui.TimestampProps{At: e.At, Now: time.Now(), Location: time.UTC} }}
+							<tr>
+								<td>{ e.Verb }</td>
+								<td class="opacity-70">{ e.Actor }</td>
+								<td>@ui.Timestamp(at)</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			@ui.LoadMore(ui.LoadMoreProps{Href: v.NextHref, Target: "#events tbody"})
+		}
+	}
+}

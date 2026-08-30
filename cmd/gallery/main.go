@@ -159,6 +159,17 @@ func sections() []Section {
 			Note: "PageHref et SortHref ne mutent jamais l'url.Values reçue et préservent les filtres en place ; page=1 est retiré de l'URL. Un test parcourt toutes les combinaisons jusqu'à 40 pages pour vérifier qu'aucune page n'est dupliquée ni sautée sans ellipse.",
 		},
 		{
+			Group: "Tier 1 — Composants", ID: "loadmore", Title: "LoadMore",
+			Purpose: "Pagination des tables qu'on ne peut pas compter : on ajoute les lignes, on ne les remplace pas.",
+			Uses:    []string{"up-target", ":after", "cursor"},
+			Demo:    demoLoadMore(),
+			Snippet: `@ui.LoadMore(ui.LoadMoreProps{
+    Href:   "/feed" + ui.CursorHref(r.URL.Query(), nextCursor),
+    Target: "#events tbody",
+})`,
+			Note: "up-target=\"#events tbody:after, #load-more\" : le :after ajoute les enfants au lieu d'échanger l'élément, et le bouton fait partie de la cible pour se remplacer par le curseur suivant. Le conteneur est rendu même sur la dernière page — c'est la moitié serveur de [up-target], et une cible absente annule la mise à jour. [up-history] vaut false, contre la règle du dépôt : aucune URL ne peut signifier « pages 1 à 3, ajoutées », et poser le curseur de la page 3 ferait sauter les deux premières au rechargement. Vérifié en cliquant : 12 → 24 → 36 → 48 lignes, URL inchangée, bouton disparu à la fin. Préférez Pagination dès que « page 7 sur 42 » a un sens.",
+		},
+		{
 			Group: "Tier 1 — Composants", ID: "empty", Title: "EmptyState",
 			Purpose: "Ce qui remplit la place des lignes quand il n'y en a pas — avec une sortie.",
 			Uses:    []string{"utilities"},
@@ -180,6 +191,17 @@ func sections() []Section {
 			Note: "Chaque champ est son propre <fieldset> : c'est ce que [up-validate] cible par défaut (X-Up-Target: fieldset:has(#f-email)). Sans ce conteneur, le serveur n'a aucun fragment stable à re-rendre. Le serveur valide sans committer et renvoie le formulaire ; seul le champ modifié bouge.",
 		},
 		{
+			Group: "Tier 1 — Composants", ID: "boxfields", Title: "TextareaField · CheckboxField · ToggleField · RadioGroup",
+			Purpose: "Les contrôles qu'un input seul ne rend pas : texte long, booléen, choix court.",
+			Uses:    []string{"fieldset", "textarea", "checkbox", "toggle", "radio"},
+			Demo:    demoBoxFields(),
+			Snippet: `@ui.TextareaField(ui.FieldProps{Name: "note", Label: "Note interne"})
+@ui.CheckboxField(ui.FieldProps{Name: "tos", Label: "J'accepte les conditions", Checked: u.Accepted})
+@ui.ToggleField(ui.FieldProps{Name: "beta", Label: "Fonctions bêta", Checked: u.Beta})
+@ui.RadioGroup(ui.FieldProps{Name: "role", Label: "Rôle", Value: u.Role}, roles)`,
+			Note: "Une case décochée ne soumet rien : lisez-la avec r.Form.Has(name), jamais avec r.FormValue(name) == \"\" — celui-ci ne distingue pas « décochée » de « champ absent ». Chaque radio d'un groupe porte son propre id pour que [up-validate] retombe sur fieldset:has(#f-role-admin) ; le groupe lui-même n'a pas de contrôle unique à viser, donc un vrai <legend>. Les classes de couleur (checkbox-error, toggle-error) sont écrites en toutes lettres : \"toggle\" + \"-error\" compile et le CSS manque à l'exécution.",
+		},
+		{
 			Group: "Tier 1 — Composants", ID: "status", Title: "StatusBadge",
 			Purpose: "Un état a la même couleur sur tous les écrans, décidé à un seul endroit.",
 			Uses:    []string{"badge", "status"},
@@ -198,6 +220,17 @@ func sections() []Section {
     Actions: secondaryActions(), PrimaryAction: editAction(),
 })`,
 			Note: "Un Crumb sans Href rend du texte marqué aria-current=\"page\" : le dernier maillon n'est pas un lien vers la page où l'on est déjà. PrimaryAction est rendue après les actions secondaires pour garder la décision principale au bord droit.",
+		},
+		{
+			Group: "Tier 1.5 — Écrans", ID: "breadcrumb", Title: "Breadcrumb",
+			Purpose: "Le fil d'Ariane seul, pour un écran qui compose son propre en-tête.",
+			Uses:    []string{"breadcrumbs", "aria-current"},
+			Demo:    demoBreadcrumb(),
+			Snippet: `@ui.Breadcrumb([]ui.Crumb{
+    {Label: "Clients", Href: "/clients"},
+    {Label: "Acme"},
+})`,
+			Note: "Même composant que celui qu'utilise PageHeader, extrait pour être appelable seul. Un Crumb sans Href rend du texte marqué aria-current=\"page\". Rien n'est rendu si la liste est vide : un seul maillon n'est pas un chemin.",
 		},
 		{
 			Group: "Tier 1.5 — Écrans", ID: "filterbar", Title: "FilterBar",
@@ -311,4 +344,11 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("wrote dist/gallery.html")
+
+	// llms.txt lives at the repo root, not in dist: it is part of the module,
+	// so an agent finds it in the module cache next to the code it describes.
+	if err := writeLLMs("llms.txt", sections()); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("wrote llms.txt")
 }

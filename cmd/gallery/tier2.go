@@ -49,9 +49,18 @@ func tier2Sections() []Section {
 		},
 		{
 			Group: g, ID: "themetoggle", Title: "ThemeToggle",
-			Purpose: "Basculer clair/sombre avec le theme-controller CSS de daisyUI.", Uses: []string{"theme-controller", "toggle"},
+			Purpose: "Basculer clair/sombre avec le theme-controller CSS de daisyUI.", Uses: []string{"theme-controller", "radio"},
 			Demo: demoThemeToggle(), Snippet: `@ui.ThemeToggle(isDark)`,
-			Note: "Le contrôleur change le thème sans JavaScript. La persistance éventuelle reste une responsabilité de l'application.",
+			Note: "Deux radios, pas une case : daisyUI compile --prefersdark en @media (prefers-color-scheme: dark){ :root:not([data-theme]) }, donc une case unique n'exprime que « sombre » et « défaut » — et sur une machine en sombre système, « défaut » vaut sombre, ce qui rendait la position Clair inopérante. Chaque radio pose son :root:has(...:checked), plus spécifique que le média, donc les deux choix gagnent. Sans JavaScript : le choix survit aux échanges de fragments Unpoly, pas à un rechargement complet. La persistance reste à l'application.",
+		},
+		{
+			Group: g, ID: "orgswitcher", Title: "OrgSwitcher",
+			Purpose: "Changer de client sans quitter l'écran, et sans qu'un GET puisse le faire.", Uses: []string{"details", "formaction", "multi-tenant"},
+			Demo: demoOrgSwitcher(), Snippet: `@ui.OrgSwitcher(ui.OrgSwitcherProps{
+    ID: "org", Action: "/orgs/switch",
+    Orgs: orgs, CurrentID: session.OrgID,
+})`,
+			Note: "Chaque entrée est un bouton de soumission : changer de tenant change tout l'écran, et un changement d'état ne passe pas par un lien. Volontairement sans up-submit — la barre haute et la barre latérale vivent hors de <main>, donc un échange de fragment laisserait l'ancienne organisation affichée dans l'en-tête. Une seule organisation n'est pas un choix : le nom s'affiche sans menu.",
 		},
 	}
 }

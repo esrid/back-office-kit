@@ -1,0 +1,156 @@
+package ui
+
+import "strconv"
+
+// WebhookDelivery is one attempt to deliver one event to one endpoint.
+//
+// At and Datetime are pre-rendered by the caller — usually from Timestamp —
+// so this component never reads the clock.
+type WebhookDelivery struct {
+	ID         string
+	Event      string // "invoice.paid"
+	Endpoint   string
+	Status     int // code HTTP de la réponse ; 0 = aucune réponse
+	Attempts   int
+	At         string
+	Datetime   string
+	Error      string // message court du dernier échec
+	ReplayHref string // vide = rejeu impossible pour cette livraison
+}
+
+// webhookTone maps an HTTP response code to a semantic tone.
+//
+// 4xx is a warning, not an error: the remote endpoint answered and refused.
+// Replaying an identical payload will be refused identically — the fix is at
+// the other end. 3xx counts as a failure because a webhook client does not
+// follow redirects; a moved endpoint has to be reconfigured, not chased.
+// Pure.
+func webhookTone(status int) string {
+	switch {
+	case status >= 200 && status < 300:
+		return "success"
+	case status >= 400 && status < 500:
+		return "warning"
+	default:
+		return "error"
+	}
+}
+
+// webhookStatusLabel prints the code, or says plainly that nothing answered.
+// A bare "0" reads like a status code and is not one. Pure.
+func webhookStatusLabel(status int) string {
+	if status == 0 {
+		return "Sans réponse"
+	}
+	return strconv.Itoa(status)
+}
+
+type WebhookDeliveryLogProps struct {
+	ID            string
+	Title         string
+	Description   string
+	Deliveries    []WebhookDelivery
+	Filters       templ.Component
+	ReplayConfirm string // vide = rejeu sans confirmation
+}
+
+func webhookLogTitle(title string) string {
+	if title == "" {
+		return "Livraisons de webhooks"
+	}
+	return title
+}
+
+func hasReplayable(ds []WebhookDelivery) bool {
+	for _, d := range ds {
+		if d.ReplayHref != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// WebhookDeliveryLog shows what an API actually sent, and lets an operator
+// send it again.
+//
+// Rejouer est un changement d'état — une vraie requête part vers un système
+// tiers — donc un `<button type="submit">` avec `[formaction]`, jamais un
+// lien : `http.CrossOriginProtection` laisse passer les GET, et un
+// préchargement suffirait à rejouer une livraison sans que personne clique.
+//
+// Un seul formulaire caché sert toutes les lignes : un formulaire par ligne
+// serait imbriqué dans le `<table>`, ce que le parseur HTML remonte hors du
+// tableau, et les boutons perdraient leur formulaire en silence.
+templ WebhookDeliveryLog(p WebhookDeliveryLogProps) {
+	<section id={ p.ID } class="card card-border bg-base-100" aria-labelledby={ p.ID + "-title" }>
+		<div class="card-body p-4 gap-4">
+			<header>
+				<h2 id={ p.ID + "-title" } class="font-semibold">{ webhookLogTitle(p.Title) }</h2>
+				if p.Description != "" {
+					<p class="mt-1 text-sm opacity-70">{ p.Description }</p>
+				}
+			</header>
+			if p.Filters != nil {
+				@p.Filters
+			}
+			if len(p.Deliveries) == 0 {
+				@EmptyState("Aucune livraison", "Aucune livraison ne correspond aux filtres.", nil)
+			} else {
+				<div class="overflow-x-auto">
+					<table class="table table-sm">
+						<thead>
+							<tr>
+								<th scope="col">Événement</th>
+								<th scope="col">Endpoint</th>
+								<th scope="col">Statut</th>
+								<th scope="col" class="text-right">Tentatives</th>
+								<th scope="col">Date</th>
+								if hasReplayable(p.Deliveries) {
+									<th scope="col"><span class="sr-only">Actions</span></th>
+								}
+							</tr>
+						</thead>
+						<tbody>
+							for _, d := range p.Deliveries {
+								<tr data-delivery-id={ d.ID }>
+									<td class="font-mono text-xs">{ d.Event }</td>
+									<td class="max-w-[18rem] truncate opacity-70" title={ d.Endpoint }>{ d.Endpoint }</td>
+									<td>
+										<span class={ "badge badge-sm", toneOf(webhookTone(d.Status)).Badge }>{ webhookStatusLabel(d.Status) }</span>
+										if d.Error != "" {
+											<p class="mt-1 text-xs opacity-60">{ d.Error }</p>
+										}
+									</td>
+									<td class="text-right tabular-nums">{ strconv.Itoa(d.Attempts) }</td>
+									<td class="whitespace-nowrap">
+										if d.At != "" {
+											<time datetime={ d.Datetime }>{ d.At }</time>
+										}
+									</td>
+									if hasReplayable(p.Deliveries) {
+										<td class="text-right">
+											if d.ReplayHref != "" {
+												<button
+													type="submit"
+													form={ p.ID + "-replay" }
+													formaction={ templ.SafeURL(d.ReplayHref) }
+													class="btn btn-ghost btn-xs"
+													if p.ReplayConfirm != "" {
+														up-confirm={ p.ReplayConfirm }
+													}
+												>Rejouer</button>
+											}
+										</td>
+									}
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				if hasReplayable(p.Deliveries) {
+					<form id={ p.ID + "-replay" } method="post" hidden up-submit up-target={ "#" + p.ID }></form>
+				}
+			}
+		</div>
+	</section>
+}

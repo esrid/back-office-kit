@@ -12,7 +12,7 @@ func TestSignaturesAreReadFromSource(t *testing.T) {
 	}
 
 	cases := map[string]string{
-		"Shell":     "func Shell(title string, nav []NavItem, current string, user string, flashes []Flash) templ.Component",
+		"Shell":     "func Shell(title string, nav []NavItem, current string, user string, flashes []Flash, headerExtras ...templ.Component) templ.Component",
 		"Timestamp": "func Timestamp(p TimestampProps) templ.Component",
 	}
 	for name, want := range cases {

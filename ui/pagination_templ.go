@@ -335,4 +335,161 @@ func pageLink(q url.Values, page int, target string, enabled bool, label string)
 	})
 }
 
+// CursorHref returns the query string for the next cursor page, preserving
+// filters and sort. It drops "page": offset and cursor paging cannot both
+// decide what comes next. Pure: q is never mutated.
+func CursorHref(q url.Values, cursor string) string {
+	n := cloneValues(q)
+	n.Del("page")
+	if cursor == "" {
+		n.Del("cursor")
+	} else {
+		n.Set("cursor", cursor)
+	}
+	if len(n) == 0 {
+		return "?"
+	}
+	return "?" + n.Encode()
+}
+
+// LoadMoreProps configures the cursor-paged counterpart of Pagination.
+type LoadMoreProps struct {
+	// Href is the next page, usually CursorHref(q, nextCursor). Empty means
+	// the last page: the container renders, the button does not.
+	Href string
+	// Target is the element whose children are extended, e.g. "#users tbody".
+	// The server answers with the whole element; Unpoly keeps its children.
+	Target string
+	// ID identifies this button so the response can replace it with the next
+	// one. Defaults to "load-more"; set it when a screen has two lists.
+	ID    string
+	Label string // defaults to "Charger la suite"
+}
+
+func (p LoadMoreProps) id() string {
+	if p.ID == "" {
+		return "load-more"
+	}
+	return p.ID
+}
+
+func (p LoadMoreProps) label() string {
+	if p.Label == "" {
+		return "Charger la suite"
+	}
+	return p.Label
+}
+
+// target appends to the list and swaps the button in one request:
+// ".tasks:after, .next-page" is Unpoly's documented pagination pattern.
+// Verified against https://unpoly.com/targeting-fragments 2026-08-30 (Unpoly 3).
+func (p LoadMoreProps) target() string {
+	return p.Target + ":after, #" + p.id()
+}
+
+// LoadMore is Pagination for a table nobody can count: it asks for the next
+// cursor page and appends the rows instead of replacing them.
+//
+// Use it over Pagination when COUNT(*) is too expensive or the data shifts
+// under the reader; Pagination stays the better answer whenever "page 7 of 42"
+// is meaningful.
+//
+// The wrapper is always rendered, even on the last page: it is the response's
+// half of [up-target], and a missing target aborts the update.
+//
+// [up-history] is false here, against the rule that a state-bearing fragment
+// carries it. No URL can mean "pages 1 to 3, appended": stamping the cursor of
+// page 3 would make a reload skip pages 1 and 2. The reader's position is not
+// shareable by design -- that is the price of not counting.
+func LoadMore(p LoadMoreProps) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var16 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var16 == nil {
+			templ_7745c5c3_Var16 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div id=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var17 string
+		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.id())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pagination.templ`, Line: 181, Col: 17}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" class=\"flex justify-center py-4\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if p.Href != "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<a href=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var18 templ.SafeURL
+			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Href))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pagination.templ`, Line: 184, Col: 32}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\" up-follow up-target=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var19 string
+			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.target())
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pagination.templ`, Line: 186, Col: 26}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var19)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" up-history=\"false\" class=\"btn btn-sm btn-ghost\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var20 string
+			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(p.label())
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pagination.templ`, Line: 190, Col: 15}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</a>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
 var _ = templruntime.GeneratedTemplate

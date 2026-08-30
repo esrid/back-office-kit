@@ -1,0 +1,85 @@
+package marketing
+
+// SiteHeaderProps is the top bar of a public page.
+// Current is the href of the page being shown; it marks its link
+// aria-current="page" instead of relying on colour alone.
+type SiteHeaderProps struct {
+	Product string
+	Logo    Image // optionnel : sans Alt, Picture ne rend rien et Product prend le relais
+	Home    string
+	Links   []Action
+	Actions []Action
+	Current string
+}
+
+func headerHome(p SiteHeaderProps) string {
+	if p.Home != "" {
+		return p.Home
+	}
+	return "/"
+}
+
+func currentAttr(href string, current string) string {
+	if href != "" && href == current {
+		return "page"
+	}
+	return ""
+}
+
+// SiteHeader is the public page's top bar: brand, sections, calls to action.
+//
+// Aucun titre : le seul `<h1>` de la page appartient au Hero. Un en-tête qui
+// ouvre en `<h1>` casse le plan de la page sans que rien ne se voie à l'œil.
+//
+// Aucun JavaScript non plus. Le menu mobile est un `<details>`, comme la FAQ :
+// il s'ouvre au clavier, fonctionne sans script, et se ferme en rechargeant.
+templ SiteHeader(p SiteHeaderProps) {
+	<header class="sticky top-0 z-30 border-b border-base-300 bg-base-100/90 backdrop-blur">
+		<div class="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+			<a href={ templ.SafeURL(headerHome(p)) } class="flex items-center gap-2 font-semibold">
+				@Picture(p.Logo, "h-7 w-auto")
+				{ p.Product }
+			</a>
+			if len(p.Links) > 0 {
+				<nav class="hidden md:flex items-center gap-1" aria-label="Sections du site">
+					for _, l := range p.Links {
+						<a
+							href={ templ.SafeURL(l.Href) }
+							class="btn btn-ghost btn-sm font-normal aria-[current=page]:bg-base-200 aria-[current=page]:font-medium"
+							if currentAttr(l.Href, p.Current) != "" {
+								aria-current="page"
+							}
+						>{ l.Label }</a>
+					}
+				</nav>
+			}
+			<div class="ms-auto flex items-center gap-2">
+				if len(p.Actions) > 0 {
+					<div class="hidden sm:flex items-center gap-2">
+						@actionButtons(p.Actions)
+					</div>
+				}
+				if len(p.Links) > 0 || len(p.Actions) > 0 {
+					<details class="dropdown dropdown-end md:hidden">
+						<summary class="btn btn-ghost btn-sm btn-square" aria-label="Menu">&#9776;</summary>
+						<ul class="dropdown-content menu bg-base-100 rounded-box z-30 mt-2 w-56 border border-base-300 p-2 shadow-lg">
+							for _, l := range p.Links {
+								<li>
+									<a
+										href={ templ.SafeURL(l.Href) }
+										if currentAttr(l.Href, p.Current) != "" {
+											aria-current="page"
+										}
+									>{ l.Label }</a>
+								</li>
+							}
+							for _, a := range p.Actions {
+								<li><a href={ templ.SafeURL(a.Href) } class="font-medium">{ a.Label }</a></li>
+							}
+						</ul>
+					</details>
+				}
+			</div>
+		</div>
+	</header>
+}

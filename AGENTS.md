@@ -13,7 +13,7 @@ ci-dessous viennent chacune d'un bug réel.
 ```sh
 make generate   # templ generate + détache le commentaire de version des générés
 make css        # tailwind + daisyui -> dist/app.css
-make gallery    # écrit dist/gallery.html
+make gallery    # écrit dist/gallery.html et llms.txt
 make dev        # lance example/ sur :8080
 make test
 ```

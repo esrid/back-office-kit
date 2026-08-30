@@ -124,6 +124,7 @@ func registerRecords(mux *http.ServeMux, operator string) {
 	registerPolicy(mux, operator)
 	registerSecurity(mux, operator)
 	registerCollaboration(mux, operator)
+	registerFeed(mux, operator)
 
 	mux.HandleFunc("GET /approvals", func(w http.ResponseWriter, r *http.Request) {
 		render(r.Context(), w, ApprovalsPage(ApprovalsView{

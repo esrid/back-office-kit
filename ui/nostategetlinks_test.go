@@ -47,6 +47,16 @@ func TestStateChangingActionsAreNotLinks(t *testing.T) {
 		"RowActionMenu.Method": RowActionMenu("m1", "Actions", []Action{
 			{Label: "Supprimer", Href: destructive, Method: "delete", Confirm: "Sûr ?"},
 		}),
+		"OrgSwitcher.Action": OrgSwitcher(OrgSwitcherProps{
+			ID: "org", Action: destructive, CurrentID: "acme",
+			Orgs: []Org{{ID: "acme", Name: "Acme"}, {ID: "globex", Name: "Globex"}},
+		}),
+		"WebhookDeliveryLog.ReplayHref": WebhookDeliveryLog(WebhookDeliveryLogProps{
+			ID: "hooks",
+			Deliveries: []WebhookDelivery{
+				{ID: "d1", Event: "invoice.paid", Endpoint: "https://acme.test/hook", Status: 500, Attempts: 3, ReplayHref: destructive},
+			},
+		}),
 	}
 
 	for name, component := range cases {

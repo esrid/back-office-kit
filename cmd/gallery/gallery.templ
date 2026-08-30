@@ -157,6 +157,50 @@ templ demoFields() {
 	</form>
 }
 
+templ demoBoxFields() {
+	<form class="grid sm:grid-cols-2 gap-x-6 gap-y-1 max-w-2xl">
+		@ui.TextareaField(ui.FieldProps{
+			Name: "note", Label: "Note interne", Value: "Compte migré depuis l'ancien plan le 12 mars.",
+			Hint: "Visible par l'équipe, jamais par le client.",
+		})
+		<div class="flex flex-col justify-center gap-1">
+			@ui.CheckboxField(ui.FieldProps{
+				Name: "tos", Label: "J'accepte les conditions", Required: true,
+				Error: "Vous devez accepter les conditions pour continuer.",
+			})
+			@ui.ToggleField(ui.FieldProps{
+				Name: "beta", Label: "Fonctions bêta", Checked: true, Hint: "Prend effet immédiatement.",
+			})
+		</div>
+		@ui.RadioGroup(ui.FieldProps{Name: "role", Label: "Rôle", Value: "member"}, []ui.Option{
+			{Value: "admin", Label: "Administrateur"},
+			{Value: "member", Label: "Membre"},
+			{Value: "viewer", Label: "Lecture seule"},
+		})
+	</form>
+}
+
+templ demoLoadMore() {
+	<div class="w-full max-w-xl">
+		<table id="events" class="table">
+			<tbody>
+				<tr><td>a suspendu un compte</td><td class="opacity-70">amelie@acme.co</td></tr>
+				<tr><td>a validé une facture</td><td class="opacity-70">karim@acme.co</td></tr>
+				<tr><td>a exporté 1 240 lignes</td><td class="opacity-70">sofia@acme.co</td></tr>
+			</tbody>
+		</table>
+		@ui.LoadMore(ui.LoadMoreProps{Href: "?cursor=e_003", Target: "#events tbody"})
+	</div>
+}
+
+templ demoBreadcrumb() {
+	@ui.Breadcrumb([]ui.Crumb{
+		{Label: "Acme", Href: "/"},
+		{Label: "Clients", Href: "/clients"},
+		{Label: "Globex SA"},
+	})
+}
+
 templ demoStatus() {
 	<div class="flex flex-wrap gap-2 items-center">
 		for _, s := range []string{"Active", "Pending", "Failed", "Draft", "Paid", "Processing", "Cancelled", "Archived", "Sabbatique"} {

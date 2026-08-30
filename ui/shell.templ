@@ -5,7 +5,11 @@ package ui
 //
 // <main> is an Unpoly default main target, so plain [up-follow] links swap
 // only the content region without an explicit [up-target].
-templ Shell(title string, nav []NavItem, current string, user string, flashes []Flash) {
+//
+// headerExtras est variadique, donc facultatif : les appels existants ne
+// changent pas. Ce qui y est passé se rend à droite du titre — un
+// OrgSwitcher, à peu près rien d'autre.
+templ Shell(title string, nav []NavItem, current string, user string, flashes []Flash, headerExtras ...templ.Component) {
 	<div class="drawer lg:drawer-open">
 		<input id="app-drawer" type="checkbox" class="drawer-toggle"/>
 		<div class="drawer-content flex flex-col min-h-screen">
@@ -15,8 +19,12 @@ templ Shell(title string, nav []NavItem, current string, user string, flashes []
 						@iconMenu()
 					</label>
 					<span class="font-semibold">{ title }</span>
+					for _, extra := range headerExtras {
+						@extra
+					}
 				</div>
 				<div class="navbar-end gap-2">
+					@ThemeToggle(false)
 					<span class="text-sm opacity-70 hidden sm:inline">{ user }</span>
 					<form method="post" action="/logout">
 						<button class="btn btn-ghost btn-sm">Déconnexion</button>

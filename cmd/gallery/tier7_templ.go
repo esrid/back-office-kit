@@ -291,4 +291,43 @@ func demoImportMapper() templ.Component {
 	})
 }
 
+func demoWebhookDeliveryLog() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var8 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var8 == nil {
+			templ_7745c5c3_Var8 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = ui.WebhookDeliveryLog(ui.WebhookDeliveryLogProps{
+			ID:            "hooks",
+			Description:   "Trente derniers jours, endpoint de production.",
+			ReplayConfirm: "Renvoyer cette livraison au endpoint ?",
+			Deliveries: []ui.WebhookDelivery{
+				{ID: "d1", Event: "invoice.paid", Endpoint: "https://acme.test/hooks/billing", Status: 200, Attempts: 1, At: "il y a 4 minutes", Datetime: "2026-08-28T14:02:00-04:00"},
+				{ID: "d2", Event: "user.suspended", Endpoint: "https://acme.test/hooks/crm", Status: 422, Attempts: 1, At: "il y a 26 minutes", Datetime: "2026-08-28T13:40:00-04:00", Error: "champ « reason » manquant", ReplayHref: "/webhooks/d2/replay"},
+				{ID: "d3", Event: "invoice.paid", Endpoint: "https://partner.io/hooks", Status: 503, Attempts: 4, At: "il y a 2 heures", Datetime: "2026-08-28T12:10:00-04:00", Error: "service indisponible", ReplayHref: "/webhooks/d3/replay"},
+				{ID: "d4", Event: "export.ready", Endpoint: "https://nord.test/hooks", Status: 0, Attempts: 6, At: "hier, 22:31", Datetime: "2026-08-27T22:31:00-04:00", Error: "délai dépassé après 10 s", ReplayHref: "/webhooks/d4/replay"},
+			},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
 var _ = templruntime.GeneratedTemplate

@@ -23,7 +23,7 @@ templ Layout(title string) {
 
 templ UsersPage(v UsersView) {
 	@Layout("Utilisateurs") {
-		@ui.Shell("Acme Admin", nav(), "/", v.Operator, v.Flashes) {
+		@ui.Shell("Acme Admin", nav(), "/", v.Operator, v.Flashes, ui.OrgSwitcher(ui.OrgSwitcherProps{ID: "org-switcher", Action: "/orgs/switch", Orgs: orgs(), CurrentID: v.OrgID})) {
 			@ui.IndexPage(ui.PageProps{
 				Title:    "Utilisateurs",
 				Subtitle: v.Subtitle,

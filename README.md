@@ -32,7 +32,17 @@ go run ./cmd/gallery && open dist/gallery.html
 
 `dist/gallery.html` est autonome (CSS inline, aucune dépendance réseau hors
 Google Fonts) et versionné : il s'ouvre aussi directement depuis un clone, sans
-rien construire.
+rien construire. Il voyage dans le zip du module, donc depuis un projet
+consommateur :
+
+```sh
+open "$(go list -m -f '{{.Dir}}' github.com/esrid/back-office-kit)/dist/gallery.html"
+```
+
+**`llms.txt` pour les agents.** Généré par `make gallery` depuis les mêmes
+sections : les invariants du kit, puis chaque composant avec sa signature exacte
+extraite du source. C'est le fichier à donner à un agent plutôt que 470 Ko de
+HTML rendu.
 
 GitHub Pages n'est pas activé — il demande un dépôt public ou un plan payant.
 Si le dépôt passe public, la source Pages devra être `/` ou `/docs` (`/dist`
@@ -59,14 +69,35 @@ go get github.com/esrid/back-office-kit
 Les fichiers `*_templ.go` sont versionnés, donc le paquet est utilisable sans
 installer templ. Vous n'avez besoin de templ que pour vos propres templates.
 
-Tailwind doit voir les classes du kit, sinon le CSS manquera à l'exécution.
-Ajoutez la source dans votre `app.css` :
+Le dépôt est privé : `go get` a besoin de savoir qu'il ne passe pas par le proxy,
+et Git de parler SSH.
+
+```sh
+export GOPRIVATE=github.com/esrid/*
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+go get github.com/esrid/back-office-kit
+```
+
+Tailwind doit voir les classes du kit, sinon le CSS manquera à l'exécution. Les
+sources vivent dans le cache des modules, à un chemin qui contient la version :
+**calculez-le, ne l'écrivez pas.**
+
+```sh
+KIT=$(go list -m -f '{{.Dir}}' github.com/esrid/back-office-kit)
+{ echo '@source "./**/*.templ";'; echo "@source \"$KIT/ui\";"; } > sources.generated.css
+```
 
 ```css
 @import "tailwindcss";
 @plugin "daisyui";
-@source "../path/vers/back-office-kit/ui";
+@import "./sources.generated.css";
 ```
+
+Régénérez `sources.generated.css` à chaque build : la version est dans le chemin,
+donc une mise à jour du kit le périme. Et **n'essayez pas de joker** — `@source
+".../back-office-kit@*/ui"` ne remonte aucun fichier, sans erreur ni code de
+sortie : 14 Ko de CSS au lieu de 237, et les classes du kit manquent à
+l'exécution. Vérifié.
 
 Puis chargez Unpoly dans votre `<head>` — le kit fonctionne sans lui, Unpoly ne
 fait qu'éviter les rechargements.
@@ -105,7 +136,7 @@ URL, votre code les applique aux données.
 ```sh
 make generate   # templ generate + détache le commentaire de version des générés
 make css        # tailwind + daisyui -> dist/app.css
-make gallery    # écrit dist/gallery.html
+make gallery    # écrit dist/gallery.html et llms.txt
 make dev        # lance example/ sur :8080
 make test
 ```

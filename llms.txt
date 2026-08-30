@@ -1,0 +1,262 @@
+# back-office-kit
+
+> Composants server-rendered pour back-office Go : templ pour le rendu, daisyUI 5
+> pour les classes, Unpoly 3 pour éviter les rechargements. Deux paquets :
+> `ui` (back-office) et `ui/marketing` (pages publiques). Le kit ne stocke
+> aucun état : tri, filtres et pagination vivent dans la query string.
+
+## Installation
+
+    go get github.com/esrid/back-office-kit
+
+Les `*_templ.go` sont versionnés : importer et rendre ne demande ni templ ni npm.
+Tailwind doit voir les sources du kit, sinon le CSS manque à l'exécution — le
+chemin se calcule, il ne s'écrit pas :
+
+    KIT=$(go list -m -f '{{.Dir}}' github.com/esrid/back-office-kit)
+    { echo '@source "./**/*.templ";'; echo "@source \"$KIT/ui\";"; } > sources.generated.css
+
+Puis dans votre entrée Tailwind : `@import "tailwindcss"; @plugin "daisyui"; @import "./sources.generated.css";`
+
+## Invariants — les casser compile et ne se voit qu'à l'exécution
+
+- Aucun changement d'état ne passe par un GET. http.CrossOriginProtection laisse
+  toujours passer GET/HEAD/OPTIONS, et [up-preload] déclenche un lien sans clic.
+  Les actions destructives sont des <button type="submit"> avec [formaction].
+- [up-layer] n'accepte que new, swap, shatter. Le type d'overlay va dans [up-mode].
+- Les classes de couleur s'écrivent en toutes lettres. "badge-" + tone compile,
+  mais le scanner Tailwind ne le voit pas.
+- Un fragment porteur d'état a besoin de [up-history="true"] : Unpoly ne change
+  l'URL que pour une cible principale. Concerne DataTable, Pagination, FilterBar,
+  DetailTabs. Exception documentée : LoadMore, où aucune URL ne peut décrire des
+  pages ajoutées.
+- Chaque champ de formulaire est son propre <fieldset> : c'est ce que
+  [up-validate] cible (X-Up-Target: fieldset:has(#f-email)).
+- L'argent est un entier en unités mineures, jamais un float.
+- Rien ne lit l'horloge ni le hasard : Timestamp prend Now en paramètre.
+- Dans ui/marketing : un seul <h1> (rendu par Hero), toute image porte alt/width/
+  height, aucun JavaScript.
+
+## Composants
+
+Chaque entrée donne la signature exacte, extraite du source à la génération.
+`go doc github.com/esrid/back-office-kit/ui <Nom>` donne les champs de props.
+
+### Tier 1 — Composants
+
+- **Shell** — Le cadre : sidebar rétractable, barre haute, zone de flashes, région <main>.
+  `func Shell(title string, nav []NavItem, current string, user string, flashes []Flash, headerExtras ...templ.Component) templ.Component`
+- **Flashes** — Messages de confirmation après action, mis à jour à chaque rendu.
+  `func Flashes(msgs []Flash) templ.Component`
+- **DataTable** — Tableau typé et triable ; les en-têtes sont des liens, l'état de tri vit dans l'URL.
+  `func DataTable[T any](id string, cols []Column[T], rows []T, q url.Values, empty templ.Component) templ.Component`
+- **Pagination** — Sélecteur de page avec ellipses, calculé par une fonction pure et testée.
+  `func Pagination(current int, totalItems int, perPage int, q url.Values, target string) templ.Component`
+- **LoadMore** — Pagination des tables qu'on ne peut pas compter : on ajoute les lignes, on ne les remplace pas.
+  `func LoadMore(p LoadMoreProps) templ.Component`
+- **EmptyState** — Ce qui remplit la place des lignes quand il n'y en a pas — avec une sortie.
+  `func EmptyState(title string, message string, action templ.Component) templ.Component`
+- **Field · SelectField** — Champ étiqueté avec indice et erreur serveur, prêt pour la validation Unpoly.
+  `func Field(f FieldProps) templ.Component`
+- **TextareaField · CheckboxField · ToggleField · RadioGroup** — Les contrôles qu'un input seul ne rend pas : texte long, booléen, choix court.
+  `func TextareaField(f FieldProps) templ.Component`
+- **StatusBadge** — Un état a la même couleur sur tous les écrans, décidé à un seul endroit.
+  `func StatusBadge(status string) templ.Component`
+
+### Tier 1.5 — Écrans
+
+- **PageHeader** — Le haut de chaque écran : fil d'Ariane, titre, actions secondaires, action primaire.
+  `func PageHeader(p PageProps) templ.Component`
+- **Breadcrumb** — Le fil d'Ariane seul, pour un écran qui compose son propre en-tête.
+  `func Breadcrumb(crumbs []Crumb) templ.Component`
+- **FilterBar** — Recherche, listes et période, toutes dans une query string partageable.
+  `func FilterBar(fs []Filter, q url.Values, target string) templ.Component`
+- **IndexPage** — L'écran dont un back-office a vingt exemplaires : en-tête, filtres, tableau.
+  `func IndexPage(p PageProps, filters templ.Component) templ.Component`
+- **DetailPage · Panel · DetailList** — Une fiche : colonne principale et panneau de métadonnées qui passe dessous en étroit.
+  `func DetailPage(p PageProps, aside templ.Component) templ.Component`
+- **FormPage** — Création et édition : champs groupés en panneaux, actions collées au bas de l'écran.
+  `func FormPage(p PageProps, action string, actions templ.Component) templ.Component`
+- **SettingsPage · SettingsRow** — Réglages : sous-navigation à gauche, explication à gauche de chaque contrôle.
+  `func SettingsPage(p PageProps, nav []NavItem, current string) templ.Component`
+
+### Tier 2 — Navigation & contexte
+
+- **StatRow** — Une ligne de KPI lisible qui devient verticale sur petit écran.
+  `func StatRow(stats []Stat) templ.Component`
+- **SlideOver** — Éditer dans un drawer droit puis rafraîchir la liste parente à l'acceptation.
+  `func SlideOver(title string) templ.Component`
+- **DetailTabs** — Navigation entre sections d'une fiche, avec état actif porté par l'URL.
+  `func DetailTabs(tabs []DetailTab, current string, target string) templ.Component`
+- **BulkActionBar** — Actions groupées visibles uniquement lorsqu'au moins une ligne est sélectionnée.
+  `func BulkActionBar(selected int, singular string, many string) templ.Component`
+- **AuthCard** — Login concentré dans une card, soutenu par un hero produit sur grand écran.
+  `func AuthCard(p AuthCardProps) templ.Component`
+- **FileField** — Sélection de fichier, aide, erreur et progression d'envoi dans un seul fieldset.
+  `func FileField(f FileFieldProps) templ.Component`
+- **AuditTimeline** — Historique chronologique avec auteur, horodatage et nature de l'événement.
+  `func AuditTimeline(events []AuditEvent) templ.Component`
+- **ThemeToggle** — Basculer clair/sombre avec le theme-controller CSS de daisyUI.
+  `func ThemeToggle(dark bool) templ.Component`
+- **OrgSwitcher** — Changer de client sans quitter l'écran, et sans qu'un GET puisse le faire.
+  `func OrgSwitcher(p OrgSwitcherProps) templ.Component`
+
+### Tier 3 — Workflows
+
+- **SelectableDataTable** — Sélection serveur, select-all et actions groupées dans un tableau typé.
+  `func SelectableDataTable[T any](id string, cols []Column[T], rows []T, q url.Values, rowKey func(T) string, selection TableSelection, empty templ.Component) templ.Component`
+- **RowActionMenu** — Actions secondaires et destructives compactées au bout d'une ligne.
+  `func RowActionMenu(id string, label string, actions []Action) templ.Component`
+- **ComboboxField** — Autocomplete natif avec suggestions rendues ou rafraîchies par le serveur.
+  `func ComboboxField(p ComboboxProps) templ.Component`
+- **SavedViewBar** — Rappeler des combinaisons nommées de filtres, tri et colonnes.
+  `func SavedViewBar(views []SavedView, current string, saveHref string) templ.Component`
+- **AsyncState** — Un contrat unique pour loading, empty, error, stale et ready.
+  `func AsyncState(p AsyncStateProps) templ.Component`
+- **InlineEdit** — Passer d'une valeur à son formulaire puis enregistrer ou annuler sur place.
+  `func InlineEdit(p InlineEditProps, display templ.Component) templ.Component`
+- **ConfirmAction** — Confirmation stylée pour les opérations irréversibles, avec friction optionnelle.
+  `func ConfirmAction(p ConfirmActionProps) templ.Component`
+- **Wizard** — Formulaire multi-étapes dont chaque étape possède sa route et sa validation.
+  `func Wizard(p WizardProps) templ.Component`
+- **RepeaterField** — Ajouter et retirer des lignes imbriquées sans confier leur index au navigateur.
+  `func RepeaterField(id string, label string, rows []RepeaterRow, addHref string) templ.Component`
+- **JobProgress** — Suivre import, export ou rapport jusqu'à un état terminal.
+  `func JobProgress(p JobProgressProps) templ.Component`
+- **NotificationCenter** — Compteur non-lu et liste de notifications reliées aux records concernés.
+  `func NotificationCenter(items []Notification, allHref string, open bool) templ.Component`
+
+### Tier 4 — Agentic UI
+
+- **AgentWorkspace** — Composer conversation et état d'action dans un espace responsive.
+  `func AgentWorkspace(title string, subtitle string, sidebar templ.Component) templ.Component`
+- **AgentThread · AgentMessage** — Conversation annoncée comme journal vivant, avec auteur et horodatage explicites.
+  `func AgentThread(p AgentThreadProps) templ.Component`
+- **AgentComposer** — Demande libre avec contexte joint visible et retirable.
+  `func AgentComposer(p AgentComposerProps) templ.Component`
+- **AgentSuggestionSet** — Proposer un ensemble borné de prochaines actions avec leur risque.
+  `func AgentSuggestionSet(title string, suggestions []AgentSuggestion, target string) templ.Component`
+- **ActionPlan** — Prévisualiser étapes, outils, cibles et risques avant approbation.
+  `func ActionPlan(p ActionPlanProps) templ.Component`
+- **AgentImpactSummary** — Quantifier lectures, modifications, effets externes et coût.
+  `func AgentImpactSummary(items []AgentImpactItem) templ.Component`
+- **ApprovalCard** — Approbation globale liée à une version immuable du plan.
+  `func ApprovalCard(p ApprovalCardProps, impact templ.Component) templ.Component`
+- **AgentToolRunTimeline** — Montrer l'exécution observable des outils sans exposer le raisonnement privé du modèle.
+  `func AgentToolRunTimeline(id string, runs []AgentToolRun, busy bool, pollSource string) templ.Component`
+- **AgentResultReceipt** — Conserver la preuve durable de ce qui a réellement été exécuté.
+  `func AgentResultReceipt(p AgentReceiptProps) templ.Component`
+- **AgentUndoAction** — Annuler une exécution réversible à partir de son reçu.
+  `func AgentUndoAction(p AgentUndoProps) templ.Component`
+- **AgentHumanHandoff** — Arrêter l'automatisation et transmettre le contexte auditable à une équipe humaine.
+  `func AgentHumanHandoff(p AgentHandoffProps) templ.Component`
+
+### Tier 5 — Gouvernance
+
+- **ApprovalInbox** — Centraliser les demandes d’approbation durables et leur état backend.
+  `func ApprovalInbox(p ApprovalInboxProps) templ.Component`
+- **ChangeDiff** — Comparer les valeurs avant/après dans un plan, un conflit ou un reçu.
+  `func ChangeDiff(p ChangeDiffProps) templ.Component`
+- **ConflictResolver** — Résoudre une écriture devenue obsolète sans écraser silencieusement une modification concurrente.
+  `func ConflictResolver(p ConflictResolverProps, diff templ.Component) templ.Component`
+- **AccessNotice** — Expliquer une autorisation, un refus ou une vérification supplémentaire décidés côté serveur.
+  `func AccessNotice(p AccessNoticeProps) templ.Component`
+
+### Tier 6 — Utilisateurs avancés
+
+- **CommandPalette** — Accéder rapidement aux pages et actions sans transformer les mutations en liens.
+  `func CommandPalette(p CommandPaletteProps) templ.Component`
+- **QueryBuilder** — Composer des règles AND/OR imbriquées dans une URL interprétable par le backend.
+  `func QueryBuilder(p QueryBuilderProps) templ.Component`
+- **ColumnManager** — Configurer visibilité, ordre et densité d’un tableau sans dépendre du drag-and-drop.
+  `func ColumnManager(p ColumnManagerProps) templ.Component`
+- **MasterDetail · MasterDetailNav** — Traiter une liste et son record actif dans un espace dense qui se replie sur mobile.
+  `func MasterDetail(p MasterDetailProps) templ.Component`
+
+### Tier 7 — Exploitation
+
+- **Timestamp** — Un instant, dit une seule fois, avec son fuseau assumé.
+  `func Timestamp(p TimestampProps) templ.Component`
+- **Sparkline** — La tendance à côté du nombre, parce qu'un nombre seul ment.
+  `func Sparkline(p SparklineProps) templ.Component`
+- **UndoSnackbar** — Le filet des actions de masse, qui manquait au kit.
+  `func UndoSnackbar(p UndoProps) templ.Component`
+- **ImpersonationBanner** — Agir au nom de quelqu'un sans jamais l'oublier.
+  `func ImpersonationBanner(p ImpersonationProps) templ.Component`
+- **ErrorPage** — Le seul écran certain d'être vu, et celui qu'on ne dessine jamais.
+  `func ErrorPage(p ErrorPageProps) templ.Component`
+- **ImportMapper** — L'étape où un humain décide que « Email address » veut dire e-mail.
+  `func ImportMapper(p ImportMapperProps) templ.Component`
+- **WebhookDeliveryLog** — Ce que l'API a réellement envoyé, et le moyen de le renvoyer.
+  `func WebhookDeliveryLog(p WebhookDeliveryLogProps) templ.Component`
+
+### Tier 8 — Sécurité & accès
+
+- **PermissionMatrix** — Administrer les capacités d’un rôle sans confondre affichage et autorisation.
+  `func PermissionMatrix(p PermissionMatrixProps) templ.Component`
+- **AccessGrantList** — Voir et révoquer les accès directs par identifiant de grant.
+  `func AccessGrantList(p AccessGrantListProps) templ.Component`
+- **SessionManager** — Identifier les appareils connectés et révoquer une session précise.
+  `func SessionManager(p SessionManagerProps) templ.Component`
+- **APIKeyManager** — Gérer des clés masquées, leurs portées, expiration et dernière utilisation.
+  `func APIKeyManager(p APIKeyManagerProps) templ.Component`
+- **SecretReveal** — Remettre un secret une seule fois puis enregistrer son acquittement.
+  `func SecretReveal(p SecretRevealProps) templ.Component`
+- **StepUpAuthCard** — Demander un facteur frais avant de reprendre une action sensible.
+  `func StepUpAuthCard(p StepUpAuthProps) templ.Component`
+- **PolicySimulator** — Expliquer une décision acteur × ressource × action sans modifier les accès.
+  `func PolicySimulator(p PolicySimulatorProps) templ.Component`
+- **SecurityEventFeed** — Surveiller les événements sensibles avec acteur, cible et référence de requête.
+  `func SecurityEventFeed(p SecurityEventFeedProps) templ.Component`
+
+### Tier 9 — Collaboration humaine
+
+- **AssigneePicker** — Attribuer une fiche à un opérateur sans écraser une affectation concurrente.
+  `func AssigneePicker(p AssigneePickerProps) templ.Component`
+- **CommentThread** — Conserver le contexte humain sur une fiche et publier une note sans rechargement.
+  `func CommentThread(p CommentThreadProps) templ.Component`
+- **WatchButton** — Suivre une fiche et rendre visible le nombre d’opérateurs abonnés.
+  `func WatchButton(p WatchButtonProps) templ.Component`
+- **ActivityFeed** — Réunir commentaires, affectations et transitions métier dans un fil lisible.
+  `func ActivityFeed(p ActivityFeedProps) templ.Component`
+- **DeadlineStatus** — Afficher une échéance ou un SLA dans le fuseau de l’opérateur avec un état mesurable.
+  `func DeadlineStatus(p DeadlineStatusProps) templ.Component`
+- **TaskList** — Suivre des relances assignées, datées et terminables sans état client caché.
+  `func TaskList(p TaskListProps) templ.Component`
+- **RecordPresence** — Signaler qui consulte ou modifie la même fiche sans promettre un verrou inexistant.
+  `func RecordPresence(p RecordPresenceProps) templ.Component`
+- **États de collaboration** — Vérifier visuellement conflit, désactivation, vide et actualisation avant l’intégration.
+
+### Commerce — back-office
+
+- **Money** — Le pendant de Timestamp pour l'argent : une seule façon d'écrire un montant.
+  `func Money(p MoneyProps) templ.Component`
+- **LineItemsTable** — Une commande ou une facture, avec ses ajustements et son total.
+  `func LineItemsTable(p LineItemsProps) templ.Component`
+- **LineItemsTable · écart détecté** — Ce qui arrive quand le total contredit ses propres lignes.
+  `func LineItemsTable(p LineItemsProps) templ.Component`
+- **AddressBlock** — Une adresse dans l'ordre attendu par son pays de destination.
+  `func AddressBlock(label string, a Address) templ.Component`
+- **RefundForm** — Rembourser tout ou partie, borné par ce qui reste réellement remboursable.
+  `func RefundForm(p RefundFormProps) templ.Component`
+
+### Marketing — pages publiques
+
+- **SiteHeader** — La barre haute d'une page publique, sans script et sans titre.
+  `func SiteHeader(p SiteHeaderProps) templ.Component`
+- **Hero** — Le seul <h1> de la page.
+  `func Hero(p HeroProps) templ.Component`
+- **FeatureGrid** — Trois à six arguments, pas vingt.
+  `func FeatureGrid(title string, subtitle string, features []Feature) templ.Component`
+- **PricingTable** — Les paliers, dans un ordre qui veut dire quelque chose.
+  `func PricingTable(title string, subtitle string, plans []Plan) templ.Component`
+- **TestimonialGrid** — Des citations attribuées, pas des phrases flottantes.
+  `func TestimonialGrid(title string, quotes []Quote) templ.Component`
+- **FAQ** — Un accordéon sans une ligne de JavaScript.
+  `func FAQ(title string, items []QA) templ.Component`
+- **CTASection** — La dernière chose avant le pied de page.
+  `func CTASection(title string, subtitle string, actions []Action, note string) templ.Component`
+- **LogoCloud** — Qui l'utilise déjà.
+  `func LogoCloud(label string, logos []Image) templ.Component`
+- **MarketingFooter** — Colonnes de liens et mentions légales.
+  `func MarketingFooter(product string, tagline string, columns []FooterColumn, legal string) templ.Component`

@@ -68,5 +68,16 @@ func tier7Sections() []Section {
 })`,
 			Note: "JobProgress couvre l'exécution de l'import ; c'est ici que les données se cassent vraiment. On associe sur pièces : les premières valeurs de chaque colonne sont affichées à côté du choix. Deux garde-fous testés — un champ obligatoire sans colonne désactive le lancement en disant pourquoi, et deux colonnes visant le même champ sont signalées puisque la dernière écraserait les autres en silence.",
 		},
+		{
+			Group: g, ID: "webhookdeliverylog", Title: "WebhookDeliveryLog",
+			Purpose: "Ce que l'API a réellement envoyé, et le moyen de le renvoyer.",
+			Uses:    []string{"table", "formaction", "http status"},
+			Demo:    demoWebhookDeliveryLog(),
+			Snippet: `@ui.WebhookDeliveryLog(ui.WebhookDeliveryLogProps{
+    ID: "hooks", Deliveries: deliveries,
+    ReplayConfirm: "Renvoyer cette livraison au endpoint ?",
+})`,
+			Note: "Un 4xx est un avertissement, pas une erreur : le endpoint a répondu et a refusé, donc rejouer la même charge sera refusé pareil — la correction est à l'autre bout. 3xx compte comme un échec parce qu'un client de webhook ne suit pas les redirections. Sans réponse s'écrit en toutes lettres : « 0 » ressemble à un code HTTP et n'en est pas un. Rejouer est un POST à formaction, jamais un lien — un préchargement suffirait à renvoyer une livraison sans que personne clique. Un seul formulaire caché sert toutes les lignes : un formulaire par ligne serait remonté hors du <table> par le parseur HTML et les boutons perdraient leur formulaire en silence.",
+		},
 	}
 }

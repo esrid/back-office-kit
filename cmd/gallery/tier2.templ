@@ -88,3 +88,14 @@ templ demoAuditTimeline() {
 templ demoThemeToggle() {
 	@ui.ThemeToggle(false)
 }
+
+templ demoOrgSwitcher() {
+	@ui.OrgSwitcher(ui.OrgSwitcherProps{
+		ID: "org-switcher", Action: "/orgs/switch", CurrentID: "acme",
+		Orgs: []ui.Org{
+			{ID: "acme", Name: "Acme SAS", Plan: "Entreprise"},
+			{ID: "kelvin", Name: "Kelvin Industries", Plan: "Pro"},
+			{ID: "nord", Name: "Nord Logistique", Plan: "Essai — 9 jours"},
+		},
+	})
+}

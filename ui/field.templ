@@ -16,6 +16,7 @@ type FieldProps struct {
 	Disabled    bool
 	Autofocus   bool
 	Validate    bool // emit [up-validate] to check this field server-side on change
+	Checked     bool // CheckboxField, ToggleField: the rendered state of the box
 }
 
 func (f FieldProps) inputType() string {
@@ -28,15 +29,22 @@ func (f FieldProps) inputType() string {
 // id is the DOM id, also used by the <label for> and by Unpoly's fieldset:has() target.
 func (f FieldProps) id() string { return "f-" + f.Name }
 
+// optionID keeps every radio of a group addressable on its own.
+func (f FieldProps) optionID(o Option) string { return f.id() + "-" + o.Value }
+
+// boxValue is what a checked box submits. Empty would submit nothing readable,
+// which is indistinguishable from unchecked.
+func (f FieldProps) boxValue() string {
+	if f.Value == "" {
+		return "1"
+	}
+	return f.Value
+}
+
 // Field renders a labelled input with hint and server-side error.
 templ Field(f FieldProps) {
 	<fieldset class="fieldset">
-		<label class="fieldset-legend" for={ f.id() }>
-			{ f.Label }
-			if f.Required {
-				<span class="text-error" aria-hidden="true">*</span>
-			}
-		</label>
+		@fieldLegend(f)
 		<input
 			id={ f.id() }
 			name={ f.Name }
@@ -61,12 +69,7 @@ templ Field(f FieldProps) {
 // SelectField is Field for a <select>. options is a slice of value/label pairs.
 templ SelectField(f FieldProps, options []Option) {
 	<fieldset class="fieldset">
-		<label class="fieldset-legend" for={ f.id() }>
-			{ f.Label }
-			if f.Required {
-				<span class="text-error" aria-hidden="true">*</span>
-			}
-		</label>
+		@fieldLegend(f)
 		<select
 			id={ f.id() }
 			name={ f.Name }
@@ -88,10 +91,127 @@ templ SelectField(f FieldProps, options []Option) {
 	</fieldset>
 }
 
+templ fieldLegend(f FieldProps) {
+	<label class="fieldset-legend" for={ f.id() }>
+		{ f.Label }
+		if f.Required {
+			<span class="text-error" aria-hidden="true">*</span>
+		}
+	</label>
+}
+
 templ fieldNote(hint string, err string) {
 	if err != "" {
 		<p class="label text-error">{ err }</p>
 	} else if hint != "" {
 		<p class="label">{ hint }</p>
 	}
+}
+
+// TextareaField is Field for multi-line text. The value goes in the element's
+// content, never in a value attribute: a <textarea value="..."> renders empty.
+templ TextareaField(f FieldProps) {
+	<fieldset class="fieldset">
+		@fieldLegend(f)
+		<textarea
+			id={ f.id() }
+			name={ f.Name }
+			placeholder={ f.Placeholder }
+			class={ "textarea w-full min-h-24 resize-y", templ.KV("textarea-error", f.Error != "") }
+			required?={ f.Required }
+			disabled?={ f.Disabled }
+			autofocus?={ f.Autofocus }
+			if f.Error != "" {
+				aria-invalid="true"
+			}
+			if f.Validate {
+				up-validate
+			}
+		>{ f.Value }</textarea>
+		@fieldNote(f.Hint, f.Error)
+	</fieldset>
+}
+
+// CheckboxField is one box with its label beside it, for a single boolean.
+//
+// An unchecked box submits nothing at all: read it with r.Form.Has(name), never
+// with r.FormValue(name) == "" — the second cannot tell « décochée » from
+// « champ absent du formulaire ». Checked decides the rendered state, Value
+// what a checked box submits (defaults to "1").
+templ CheckboxField(f FieldProps) {
+	@boxField(f, "checkbox", "checkbox-error")
+}
+
+// ToggleField is CheckboxField drawn as a switch. Same submission rules.
+// Use it for a setting that takes effect on its own, the box for a statement
+// the user agrees to.
+templ ToggleField(f FieldProps) {
+	@boxField(f, "toggle", "toggle-error")
+}
+
+// The two class names are passed in full, never built from the control name:
+// "toggle" + "-error" would compile and the CSS would be missing at runtime.
+templ boxField(f FieldProps, class string, errClass string) {
+	<fieldset class="fieldset">
+		<label class="label cursor-pointer justify-start gap-2" for={ f.id() }>
+			<input
+				id={ f.id() }
+				name={ f.Name }
+				type="checkbox"
+				value={ f.boxValue() }
+				class={ class, templ.KV(errClass, f.Error != "") }
+				checked?={ f.Checked }
+				required?={ f.Required }
+				disabled?={ f.Disabled }
+				autofocus?={ f.Autofocus }
+				if f.Error != "" {
+					aria-invalid="true"
+				}
+				if f.Validate {
+					up-validate
+				}
+			/>
+			<span>
+				{ f.Label }
+				if f.Required {
+					<span class="text-error" aria-hidden="true">*</span>
+				}
+			</span>
+		</label>
+		@fieldNote(f.Hint, f.Error)
+	</fieldset>
+}
+
+// RadioGroup is SelectField for a short, fixed set of choices worth showing at
+// once. Each radio carries its own id so that [up-validate] resolves to this
+// fieldset (X-Up-Target: fieldset:has(#f-role-admin)); the group has no single
+// control to point a <label for> at, hence a real <legend>.
+templ RadioGroup(f FieldProps, options []Option) {
+	<fieldset class="fieldset">
+		<legend class="fieldset-legend">
+			{ f.Label }
+			if f.Required {
+				<span class="text-error" aria-hidden="true">*</span>
+			}
+		</legend>
+		for _, o := range options {
+			<label class="label cursor-pointer justify-start gap-2" for={ f.optionID(o) }>
+				<input
+					id={ f.optionID(o) }
+					name={ f.Name }
+					type="radio"
+					value={ o.Value }
+					class={ "radio", templ.KV("radio-error", f.Error != "") }
+					checked?={ o.Value == f.Value }
+					required?={ f.Required }
+					disabled?={ f.Disabled }
+					if f.Validate {
+						up-validate
+					}
+				/>
+				<span>{ o.Label }</span>
+			</label>
+		}
+		@fieldNote(f.Hint, f.Error)
+	</fieldset>
 }

@@ -10,6 +10,21 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // ThemeToggle switches between the configured light and dark daisyUI themes.
+//
+// Deux radios, pas une case à cocher : daisyUI compile `--prefersdark` en
+// `@media (prefers-color-scheme: dark) { :root:not([data-theme]) { … } }`.
+// Une case unique de valeur « dark » ne sait donc exprimer que « sombre » et
+// « défaut » — et sur une machine dont le système est en sombre, « défaut »
+// vaut sombre : la position « Clair » ne faisait rien. Deux radios posent
+// chacune leur `:root:has(input.theme-controller[value=…]:checked)`, plus
+// spécifique que le `:not([data-theme])` du média, donc les deux choix
+// gagnent sur la préférence système.
+//
+// ponytail: aucune persistance — le choix vit dans le DOM, donc il survit aux
+// échanges de fragments Unpoly (l'en-tête n'est pas remplacé) mais pas à un
+// rechargement complet, qui repart de la préférence système. Pour le garder,
+// il faut un cookie posé en POST et `[data-theme]` rendu sur `<html>` ; à
+// écrire le jour où quelqu'un le demande.
 func ThemeToggle(dark bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -31,17 +46,27 @@ func ThemeToggle(dark bool) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<label class=\"flex cursor-pointer items-center gap-2 text-sm\"><span>Clair</span><input type=\"checkbox\" value=\"dark\" class=\"toggle toggle-sm theme-controller\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"join\" role=\"group\" aria-label=\"Thème\"><input type=\"radio\" name=\"theme\" value=\"light\" class=\"btn btn-sm join-item theme-controller\" aria-label=\"Clair\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if dark {
+		if !dark {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " checked")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, " aria-label=\"Activer le thème sombre\"><span>Sombre</span></label>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "> <input type=\"radio\" name=\"theme\" value=\"dark\" class=\"btn btn-sm join-item theme-controller\" aria-label=\"Sombre\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if dark {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " checked")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

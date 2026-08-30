@@ -63,6 +63,18 @@ func marketingSections() []Section {
 	const full = "gal-stage--app"
 	return []Section{
 		{
+			Group: g, ID: "siteheader", Title: "SiteHeader", StageClass: full,
+			Purpose: "La barre haute d'une page publique, sans script et sans titre.",
+			Uses:    []string{"details", "aria-current", "sticky"},
+			Demo:    demoSiteHeader(),
+			Snippet: `@marketing.SiteHeader(marketing.SiteHeaderProps{
+    Product: "Acme Admin", Links: nav,
+    Actions: []marketing.Action{{Label: "Essayer", Href: "/signup", Primary: true}},
+    Current: "/pricing",
+})`,
+			Note: "Aucun titre : le seul h1 de la page appartient au Hero, et un en-tête qui ouvre en h1 casse le plan sans que rien ne se voie. Le menu mobile est un <details>, comme la FAQ — il s'ouvre au clavier et n'a besoin d'aucun JavaScript. La page courante porte aria-current=\"page\" : la couleur seule ne dit rien à un lecteur d'écran.",
+		},
+		{
 			Group: g, ID: "hero", Title: "Hero", StageClass: full,
 			Purpose: "Le seul <h1> de la page.",
 			Uses:    []string{"h1", "img"},

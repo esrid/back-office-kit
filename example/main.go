@@ -33,12 +33,39 @@ type User struct {
 // UsersView is everything the page needs. Handlers build it; templates only read.
 type UsersView struct {
 	Operator string
+	OrgID    string
 	Subtitle string
 	Rows     []User
 	Page     int
 	Total    int
 	Query    url.Values
 	Flashes  []ui.Flash
+}
+
+// orgs is the tenant list the operator may act in. Server-side, always: the
+// switcher only ever proposes what this function returns, and switchOrg
+// refuses anything else.
+func orgs() []ui.Org {
+	return []ui.Org{
+		{ID: "acme", Name: "Acme SAS", Plan: "Entreprise"},
+		{ID: "kelvin", Name: "Kelvin Industries", Plan: "Pro"},
+		{ID: "nord", Name: "Nord Logistique", Plan: "Essai — 9 jours"},
+	}
+}
+
+// currentOrg reads the chosen tenant from the cookie and validates it against
+// orgs(). An unknown or absent value falls back to the first tenant rather
+// than trusting whatever the browser sent.
+func currentOrg(r *http.Request) string {
+	c, err := r.Cookie("org")
+	if err == nil {
+		for _, o := range orgs() {
+			if o.ID == c.Value {
+				return o.ID
+			}
+		}
+	}
+	return orgs()[0].ID
 }
 
 func nav() []ui.NavItem {
@@ -50,6 +77,7 @@ func nav() []ui.NavItem {
 		{Label: "Politique", Href: "/policy"},
 		{Label: "Sécurité", Href: "/security"},
 		{Label: "Collaboration", Href: "/collaboration"},
+		{Label: "Activité", Href: "/feed"},
 		{Label: "Réglages", Href: "/settings"},
 	}
 }
@@ -144,6 +172,7 @@ func main() {
 
 		view := UsersView{
 			Operator: "amelie@acme.co",
+			OrgID:    currentOrg(r),
 			Subtitle: strconv.Itoa(total) + " comptes",
 			Rows:     rows,
 			Page:     max(atoiOr(q.Get("page"), 1), 1),
@@ -151,6 +180,22 @@ func main() {
 			Query:    q,
 		}
 		render(r.Context(), w, UsersPage(view))
+	})
+
+	// POST : changer de tenant est un changement d'état, donc jamais un GET.
+	// La valeur reçue est vérifiée contre orgs() avant d'être posée.
+	mux.HandleFunc("POST /orgs/switch", func(w http.ResponseWriter, r *http.Request) {
+		chosen := r.FormValue("org")
+		for _, o := range orgs() {
+			if o.ID == chosen {
+				http.SetCookie(w, &http.Cookie{
+					Name: "org", Value: o.ID, Path: "/",
+					HttpOnly: true, SameSite: http.SameSiteLaxMode,
+				})
+				break
+			}
+		}
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 
 	registerRecords(mux, "amelie@acme.co")

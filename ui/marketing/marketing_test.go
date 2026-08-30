@@ -87,3 +87,22 @@ func TestTestimonialUsesSemanticMarkup(t *testing.T) {
 		}
 	}
 }
+
+// SiteHeader must not steal the page's only h1: it sits above the Hero, and a
+// second h1 breaks the outline without changing anything visible.
+func TestSiteHeaderCarriesNoHeading(t *testing.T) {
+	html := render(t, SiteHeader(SiteHeaderProps{
+		Product: "Acme",
+		Links:   []Action{{Label: "Tarifs", Href: "/pricing"}},
+		Actions: []Action{{Label: "Essayer", Href: "/signup", Primary: true}},
+		Current: "/pricing",
+	}))
+	for _, tag := range []string{"<h1", "<h2", "<h3"} {
+		if strings.Contains(html, tag) {
+			t.Errorf("SiteHeader must emit no heading, found %s: %s", tag, html)
+		}
+	}
+	if !strings.Contains(html, `aria-current="page"`) {
+		t.Errorf("the current section must be marked, not merely coloured: %s", html)
+	}
+}

@@ -110,3 +110,85 @@ templ pageLink(q url.Values, page int, target string, enabled bool, label string
 		<button class="join-item btn btn-sm btn-disabled" aria-hidden="true">{ label }</button>
 	}
 }
+
+// CursorHref returns the query string for the next cursor page, preserving
+// filters and sort. It drops "page": offset and cursor paging cannot both
+// decide what comes next. Pure: q is never mutated.
+func CursorHref(q url.Values, cursor string) string {
+	n := cloneValues(q)
+	n.Del("page")
+	if cursor == "" {
+		n.Del("cursor")
+	} else {
+		n.Set("cursor", cursor)
+	}
+	if len(n) == 0 {
+		return "?"
+	}
+	return "?" + n.Encode()
+}
+
+// LoadMoreProps configures the cursor-paged counterpart of Pagination.
+type LoadMoreProps struct {
+	// Href is the next page, usually CursorHref(q, nextCursor). Empty means
+	// the last page: the container renders, the button does not.
+	Href string
+	// Target is the element whose children are extended, e.g. "#users tbody".
+	// The server answers with the whole element; Unpoly keeps its children.
+	Target string
+	// ID identifies this button so the response can replace it with the next
+	// one. Defaults to "load-more"; set it when a screen has two lists.
+	ID    string
+	Label string // defaults to "Charger la suite"
+}
+
+func (p LoadMoreProps) id() string {
+	if p.ID == "" {
+		return "load-more"
+	}
+	return p.ID
+}
+
+func (p LoadMoreProps) label() string {
+	if p.Label == "" {
+		return "Charger la suite"
+	}
+	return p.Label
+}
+
+// target appends to the list and swaps the button in one request:
+// ".tasks:after, .next-page" is Unpoly's documented pagination pattern.
+// Verified against https://unpoly.com/targeting-fragments 2026-08-30 (Unpoly 3).
+func (p LoadMoreProps) target() string {
+	return p.Target + ":after, #" + p.id()
+}
+
+// LoadMore is Pagination for a table nobody can count: it asks for the next
+// cursor page and appends the rows instead of replacing them.
+//
+// Use it over Pagination when COUNT(*) is too expensive or the data shifts
+// under the reader; Pagination stays the better answer whenever "page 7 of 42"
+// is meaningful.
+//
+// The wrapper is always rendered, even on the last page: it is the response's
+// half of [up-target], and a missing target aborts the update.
+//
+// [up-history] is false here, against the rule that a state-bearing fragment
+// carries it. No URL can mean "pages 1 to 3, appended": stamping the cursor of
+// page 3 would make a reload skip pages 1 and 2. The reader's position is not
+// shareable by design -- that is the price of not counting.
+templ LoadMore(p LoadMoreProps) {
+	<div id={ p.id() } class="flex justify-center py-4">
+		if p.Href != "" {
+			<a
+				href={ templ.SafeURL(p.Href) }
+				up-follow
+				up-target={ p.target() }
+				up-history="false"
+				class="btn btn-sm btn-ghost"
+			>
+				{ p.label() }
+			</a>
+		}
+	</div>
+}

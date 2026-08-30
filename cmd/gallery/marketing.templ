@@ -99,3 +99,19 @@ templ demoFooter() {
 		{Title: "Société", Links: []marketing.Action{{Label: "À propos", Href: "/about"}, {Label: "Mentions légales", Href: "/legal"}}},
 	}, "© 2026 Acme SAS · Hébergé en France")
 }
+
+templ demoSiteHeader() {
+	@marketing.SiteHeader(marketing.SiteHeaderProps{
+		Product: "Acme Admin",
+		Links: []marketing.Action{
+			{Label: "Fonctionnalités", Href: "/features"},
+			{Label: "Tarifs", Href: "/pricing"},
+			{Label: "Documentation", Href: "/docs"},
+		},
+		Actions: []marketing.Action{
+			{Label: "Se connecter", Href: "/login"},
+			{Label: "Essayer", Href: "/signup", Primary: true},
+		},
+		Current: "/pricing",
+	})
+}

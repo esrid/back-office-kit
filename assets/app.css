@@ -8,13 +8,18 @@
    texte normal, et tous les boutons primaires du kit sont concernés.
    Assombrir la primaire suffit ; la teinte et la saturation ne bougent pas.
 
-   Les deux sélecteurs sont nécessaires : le réglage « système » ne pose aucun
-   attribut sur la racine, un choix explicite en pose un. */
+   Les trois sélecteurs sont nécessaires : le réglage « système » ne pose aucun
+   attribut sur la racine, un choix explicite en pose un, et ThemeToggle n'en
+   pose aucun non plus — daisyUI applique son thème via
+   `:root:has(input.theme-controller[value=dark]:checked)`. Sans cette
+   troisième forme, basculer avec ThemeToggle rendait le thème sombre sans le
+   correctif de contraste. Vérifié dans dist/app.css et dans le navigateur. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not(:has(input.theme-controller[value="light"]:checked)) {
     --color-primary: oklch(50% 0.233 277.117);
   }
 }
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+:root:has(input.theme-controller[value="dark"]:checked) {
   --color-primary: oklch(50% 0.233 277.117);
 }

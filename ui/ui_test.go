@@ -3,6 +3,7 @@ package ui
 import (
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -139,5 +140,69 @@ func TestToneFor(t *testing.T) {
 		if got := ToneFor(in); got != want {
 			t.Errorf("ToneFor(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestCursorHrefDropsPageAndKeepsTheRest(t *testing.T) {
+	q := url.Values{"q": {"amélie"}, "sort": {"name"}, "page": {"4"}}
+	got := CursorHref(q, "u_910")
+
+	for _, want := range []string{"cursor=u_910", "q=am%C3%A9lie", "sort=name"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("CursorHref lost %q: %s", want, got)
+		}
+	}
+	// Offset and cursor cannot both decide what comes next.
+	if strings.Contains(got, "page=") {
+		t.Errorf("page survived the switch to cursor paging: %s", got)
+	}
+	if q.Get("page") != "4" {
+		t.Errorf("CursorHref mutated its caller's values: %v", q)
+	}
+	if got := CursorHref(url.Values{}, ""); got != "?" {
+		t.Errorf("empty cursor on empty values = %q, want %q", got, "?")
+	}
+}
+
+// The wrapper is the response's half of [up-target]: if it disappeared on the
+// last page, Unpoly would abort the update with a missing target.
+func TestLoadMoreAlwaysRendersItsTarget(t *testing.T) {
+	last := renderHTML(t, LoadMore(LoadMoreProps{Target: "#users tbody"}))
+	if !strings.Contains(last, `id="load-more"`) {
+		t.Errorf("last page dropped the target: %s", last)
+	}
+	if strings.Contains(last, "<a") {
+		t.Errorf("last page still offers a next page: %s", last)
+	}
+
+	more := renderHTML(t, LoadMore(LoadMoreProps{Href: "?cursor=u_910", Target: "#users tbody"}))
+	// Append the rows and swap the button in one request.
+	if !strings.Contains(more, `up-target="#users tbody:after, #load-more"`) {
+		t.Errorf("wrong append target: %s", more)
+	}
+	// No URL can mean "pages 1 to 3, appended".
+	if !strings.Contains(more, `up-history="false"`) {
+		t.Errorf("appended pages must not stamp the URL: %s", more)
+	}
+	if !strings.Contains(more, "Charger la suite") {
+		t.Errorf("default label lost: %s", more)
+	}
+
+	two := renderHTML(t, LoadMore(LoadMoreProps{Href: "?cursor=x", Target: ".jobs", ID: "more-jobs", Label: "Plus de jobs"}))
+	if !strings.Contains(two, `id="more-jobs"`) || !strings.Contains(two, `up-target=".jobs:after, #more-jobs"`) {
+		t.Errorf("a second list on the same screen collides: %s", two)
+	}
+}
+
+func TestBreadcrumbMarksTheCurrentPage(t *testing.T) {
+	if got := renderHTML(t, Breadcrumb(nil)); got != "" {
+		t.Errorf("an empty trail rendered %q", got)
+	}
+	html := renderHTML(t, Breadcrumb([]Crumb{{Label: "Clients", Href: "/clients"}, {Label: "Acme"}}))
+	if !strings.Contains(html, `<a href="/clients" up-follow>Clients</a>`) {
+		t.Errorf("linked crumb malformed: %s", html)
+	}
+	if !strings.Contains(html, `<span aria-current="page">Acme</span>`) {
+		t.Errorf("the last crumb is not a link and says so: %s", html)
 	}
 }

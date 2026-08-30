@@ -1,0 +1,97 @@
+package ui
+
+// Org is one tenant the operator can act in.
+type Org struct {
+	ID   string
+	Name string
+	Plan string // secondary line: "Entreprise", "Essai", la région…
+}
+
+// OrgSwitcherProps drives the tenant switcher.
+//
+// ID names the hidden form the items submit through. Action is the endpoint
+// that changes the current tenant; the chosen tenant travels as `org`.
+type OrgSwitcherProps struct {
+	ID        string
+	Orgs      []Org
+	CurrentID string
+	Action    string
+	Label     string // libellé du bouton pour les lecteurs d'écran
+}
+
+func orgSwitcherLabel(p OrgSwitcherProps) string {
+	if p.Label != "" {
+		return p.Label
+	}
+	return "Changer d’organisation"
+}
+
+// currentOrgName is the name shown on the trigger. Pure: an unknown CurrentID
+// falls back to the first tenant rather than rendering an empty button.
+func currentOrgName(p OrgSwitcherProps) string {
+	for _, o := range p.Orgs {
+		if o.ID == p.CurrentID {
+			return o.Name
+		}
+	}
+	if len(p.Orgs) > 0 {
+		return p.Orgs[0].Name
+	}
+	return ""
+}
+
+// OrgSwitcher changes the tenant the operator acts in.
+//
+// Chaque entrée est un `<button type="submit">` : changer d'organisation
+// change tout ce que l'écran affiche, et un changement d'état ne passe jamais
+// par un GET — `http.CrossOriginProtection` le laisserait passer et
+// `[up-preload]` pourrait le déclencher sans clic.
+//
+// Volontairement sans `up-submit` : la barre haute et la barre latérale vivent
+// hors de `<main>`, la cible principale d'Unpoly. Un échange de fragment
+// changerait le contenu en laissant l'ancienne organisation affichée dans
+// l'en-tête — exactement le genre de bug qui compile et s'affiche bien. Une
+// navigation complète est la seule qui redessine tout.
+//
+// Les boutons restent enfants directs de leur `<li>` et pointent le formulaire
+// par `[form]` : daisyUI stylise `.menu li > *`, donc un formulaire enveloppant
+// déplacerait ce sélecteur et l'entrée perdrait son fond au survol.
+//
+// Une seule organisation n'est pas un choix : le nom s'affiche sans menu.
+templ OrgSwitcher(p OrgSwitcherProps) {
+	if len(p.Orgs) == 1 {
+		<span class="text-sm font-medium">{ p.Orgs[0].Name }</span>
+	} else if len(p.Orgs) > 1 {
+		<details class="dropdown">
+			<summary class="btn btn-ghost btn-sm gap-1" aria-label={ orgSwitcherLabel(p) }>
+				{ currentOrgName(p) }
+				<span aria-hidden="true" class="text-xs opacity-60">&#9662;</span>
+			</summary>
+			<ul class="dropdown-content menu bg-base-100 rounded-box z-30 w-56 p-1.5 shadow-lg border border-base-300">
+				for _, o := range p.Orgs {
+					<li>
+						if o.ID == p.CurrentID {
+							<button type="button" disabled aria-current="true">
+								@orgLine(o)
+							</button>
+						} else {
+							<button type="submit" form={ p.ID } name="org" value={ o.ID }>
+								@orgLine(o)
+							</button>
+						}
+					</li>
+				}
+			</ul>
+			<form id={ p.ID } method="post" action={ templ.SafeURL(p.Action) } hidden></form>
+		</details>
+	}
+}
+
+templ orgLine(o Org) {
+	<span class="flex flex-col items-start gap-0 min-w-0">
+		<span class="truncate">{ o.Name }</span>
+		if o.Plan != "" {
+			<span class="text-xs opacity-60">{ o.Plan }</span>
+		}
+	</span>
+}
