@@ -35,7 +35,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       # Pages sert index.html à la racine, la galerie porte un autre nom.
-      - run: cp dist/gallery.html dist/index.html
+      # llms.txt vit à la racine du dépôt et se sert à la racine du site : la
+      # convention veut qu'un agent le trouve à /llms.txt, pas ailleurs.
+      - run: |
+          cp dist/gallery.html dist/index.html
+          cp llms.txt dist/llms.txt
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
